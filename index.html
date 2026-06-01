@@ -3,6 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<!-- PWA: ติดตั้งเป็นแอปบนมือถือ -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1A1A1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Maru Waffle">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -128,6 +138,36 @@
   .chartbox{position:relative;height:230px;}
   .empty{text-align:center;color:var(--ink-2);padding:30px 10px;font-size:14px;}
   .foot{text-align:center;font-size:12px;color:#8A6A00;font-weight:600;margin-top:18px;}
+
+  /* PWA install banner */
+  .install-banner{position:fixed;left:12px;right:12px;bottom:16px;max-width:480px;margin:0 auto;
+    background:linear-gradient(135deg,#1A1A1A 0%,#2A2620 100%);color:#fff;border-radius:16px;
+    padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);
+    z-index:50;transform:translateY(200%);transition:transform .35s cubic-bezier(.2,.8,.2,1);}
+  .install-banner.show{transform:translateY(0);}
+  .install-banner img{width:44px;height:44px;border-radius:11px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .install-banner .ib-text{flex:1;min-width:0;}
+  .install-banner .ib-title{font-family:'Kanit';font-weight:700;font-size:14px;color:#FFC629;line-height:1.2;}
+  .install-banner .ib-sub{font-size:11.5px;color:#D4CFC4;margin-top:2px;line-height:1.3;}
+  .install-banner button{flex:none;border:0;font-family:'Kanit';font-weight:700;font-size:13px;
+    padding:9px 14px;border-radius:10px;cursor:pointer;}
+  .install-banner .ib-yes{background:var(--yellow);color:var(--ink);box-shadow:0 3px 8px rgba(242,177,0,.3);}
+  .install-banner .ib-no{background:transparent;color:#D4CFC4;padding:9px 6px;font-size:18px;line-height:1;}
+
+  /* iOS install instruction modal */
+  .ios-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:60;padding:16px;}
+  .ios-modal.show{display:flex;}
+  .ios-modal .panel{background:#fff;border-radius:20px;padding:22px 20px;max-width:420px;width:100%;animation:slideUp .3s;}
+  .ios-modal h3{font-family:'Kanit';font-weight:700;font-size:18px;margin-bottom:6px;}
+  .ios-modal p{font-size:14px;color:var(--ink-2);margin-bottom:14px;line-height:1.5;}
+  .ios-modal .step{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px;font-size:14px;}
+  .ios-modal .step .n{flex:none;width:24px;height:24px;border-radius:50%;background:var(--yellow);color:var(--ink);
+    font-family:'Kanit';font-weight:700;font-size:12.5px;display:grid;place-items:center;}
+  .ios-modal .step b{font-family:'Kanit';}
+  .ios-modal .share-ic{display:inline-block;vertical-align:-3px;width:18px;height:18px;}
+  .ios-modal .close-btn{width:100%;margin-top:10px;border:0;background:var(--ink);color:var(--yellow);
+    font-family:'Kanit';font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;}
+  @keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 
   /* SVG icon sizing per context */
   .card .h .ic svg{width:22px;height:22px;color:#fff;display:block;}
@@ -259,7 +299,94 @@
   </div>
 </div>
 
+<!-- PWA install banner -->
+<div class="install-banner" id="installBanner">
+  <img src="icon-192.png" alt="">
+  <div class="ib-text">
+    <div class="ib-title">ติดตั้งแอป Maru Waffle</div>
+    <div class="ib-sub">เปิดใช้งานได้เร็วขึ้น เหมือนแอปจริงบนหน้าจอ</div>
+  </div>
+  <button class="ib-yes" id="installYes">ติดตั้ง</button>
+  <button class="ib-no" id="installNo" aria-label="ปิด">✕</button>
+</div>
+
+<!-- iOS install instructions -->
+<div class="ios-modal" id="iosModal">
+  <div class="panel">
+    <h3>📲 ติดตั้งแอป Maru Waffle</h3>
+    <p>ใน Safari บน iPhone/iPad ติดตั้งได้ง่ายๆ:</p>
+    <div class="step"><span class="n">1</span><div>กดปุ่ม <b>แชร์</b>
+      <svg class="share-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      ที่แถบล่างของ Safari</div></div>
+    <div class="step"><span class="n">2</span><div>เลื่อนหา <b>"เพิ่มไปยังหน้าจอโฮม"</b> (Add to Home Screen)</div></div>
+    <div class="step"><span class="n">3</span><div>กด <b>"เพิ่ม"</b> มุมขวาบน — เสร็จเรียบร้อย!</div></div>
+    <button class="close-btn" id="iosClose">รับทราบ</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
+
+<script>
+  /* ---------- PWA: Service Worker + Install prompt ---------- */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(err){ console.warn('SW reg failed:', err); });
+    });
+  }
+
+  let deferredPrompt = null;
+  const installBanner = document.getElementById('installBanner');
+  const iosModal = document.getElementById('iosModal');
+
+  // เช็คว่ารันเป็น standalone (ติดตั้งแล้ว) → ไม่ต้องโชว์ banner
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const dismissed = localStorage.getItem('pwa-install-dismissed');
+  const dismissedRecent = dismissed && (Date.now() - parseInt(dismissed)) < 7*24*60*60*1000; // 7 วัน
+
+  // Android/Chrome: ดักจับ beforeinstallprompt → โชว์ banner ของเราเอง
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!isStandalone && !dismissedRecent) {
+      setTimeout(function(){ installBanner.classList.add('show'); }, 1500);
+    }
+  });
+
+  // iOS: ไม่มี beforeinstallprompt → ต้องสอนวิธีติดตั้งเอง
+  if (isIOS && !isStandalone && !dismissedRecent) {
+    setTimeout(function(){ installBanner.classList.add('show'); }, 1500);
+  }
+
+  document.getElementById('installYes').addEventListener('click', async function(){
+    installBanner.classList.remove('show');
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('Install outcome:', outcome);
+      deferredPrompt = null;
+      if (outcome === 'accepted') localStorage.setItem('pwa-install-dismissed', Date.now()+'');
+    } else if (isIOS) {
+      iosModal.classList.add('show');
+    }
+  });
+
+  document.getElementById('installNo').addEventListener('click', function(){
+    installBanner.classList.remove('show');
+    localStorage.setItem('pwa-install-dismissed', Date.now()+'');
+  });
+
+  document.getElementById('iosClose').addEventListener('click', function(){
+    iosModal.classList.remove('show');
+    localStorage.setItem('pwa-install-dismissed', Date.now()+'');
+  });
+
+  // เมื่อติดตั้งสำเร็จ → ซ่อน banner
+  window.addEventListener('appinstalled', function(){
+    installBanner.classList.remove('show');
+    localStorage.setItem('pwa-install-dismissed', Date.now()+'');
+  });
+</script>
 
 <script>
   /* ---------- SVG icons (Lucide-style) ---------- */
