@@ -235,7 +235,7 @@
         <div class="row big"><span class="k">กำไรสุทธิ</span><span class="v net" id="tNet">฿0</span></div>
       </div>
 
-      <button class="btn" id="saveReport">บันทึกรายงานสิ้นวัน</button>
+      <button class="btn" id="saveReport">ส่งรายงานสิ้นวัน · เข้าไลน์กลุ่ม</button>
     </section>
 
     <!-- ===== Dashboard ===== -->
@@ -504,10 +504,10 @@ const BRAND_LOGOS = {
     const btn=this; btn.disabled=true; btn.textContent='กำลังบันทึก...';
     api('saveDailyReport',{data:{date:date,sales:sales,note:document.getElementById('rNote').value,expenses:expClean,recon:recon}})
       .then(function(res){
-        toast(res.msg||'บันทึกแล้ว ✓'); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน';
+        toast(res.msg||'บันทึกแล้ว ✓'); btn.disabled=false; btn.textContent='ส่งรายงานสิ้นวัน · เข้าไลน์กลุ่ม';
         loadReportForDate(date);
       })
-      .catch(function(err){ toast('ผิดพลาด: '+err.message); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน'; });
+      .catch(function(err){ toast('ผิดพลาด: '+err.message); btn.disabled=false; btn.textContent='ส่งรายงานสิ้นวัน · เข้าไลน์กลุ่ม'; });
   });
 
   /* ---------- Dashboard ---------- */
