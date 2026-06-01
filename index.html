@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -304,8 +303,21 @@
     });
   });
 
-  // init — ตรวจว่ารันบน Apps Script ไหม ถ้าไม่ใช่ (เปิดพรีวิวเฉยๆ) ให้ใช้ค่าเริ่มต้น
-  const HAS_GAS = (typeof google !== 'undefined' && google.script && google.script.run);
+  // init — เชื่อมต่อ Apps Script Web App ผ่าน API
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywor5NQYZ3H1oZZnmezopf7j9ELdV8YJsecD_C1m18NYVSkqtnHX8LTVZpgXoZd3MgPw/exec';
+  async function api(action, params){
+    try{
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method:'POST',
+        body: JSON.stringify(Object.assign({action:action}, params||{})),
+        redirect:'follow'
+      });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      if(data && data.error) throw new Error(data.error);
+      return data;
+    }catch(err){ throw err; }
+  }
   const DEFAULT_CHANNELS = [
     { key:'cash', label:'เงินสด', group:'store' },
     { key:'transfer', label:'เงินโอน', group:'store' },
@@ -323,12 +335,13 @@
     addExpenseItem();
     loadReportForDate(cfg.today);
   }
-  if(HAS_GAS){
-    google.script.run.withSuccessHandler(initApp).getConfig();
-  } else {
-    initApp({channels:DEFAULT_CHANNELS, today:todayStr()});
-    setTimeout(function(){toast('โหมดพรีวิว · ยังไม่ได้เชื่อม Google Sheet');},700);
-  }
+  api('getConfig')
+    .then(initApp)
+    .catch(function(err){
+      console.warn('API getConfig failed:', err);
+      initApp({channels:DEFAULT_CHANNELS, today:todayStr()});
+      toast('เชื่อม API ไม่ได้: '+err.message);
+    });
 
   // สีและตัวย่อแบรนด์ของแต่ละช่องทาง
   const CHAN_BRAND = {
@@ -452,9 +465,10 @@
       recalc(); loadingDate=false;
       if(s) toast('โหลดรายงานของวันนี้ที่เคยบันทึกไว้');
     };
-    if(!HAS_GAS){ fillReport({date:date,sales:null,expenses:[]}); return; }
     loadingDate=true;
-    google.script.run.withSuccessHandler(fillReport).getDailyReport(date);
+    api('getDailyReport',{date:date})
+      .then(fillReport)
+      .catch(function(err){ loadingDate=false; toast('โหลดไม่ได้: '+err.message); fillReport({date:date,sales:null,expenses:[]}); });
   }
 
   // save
@@ -474,15 +488,12 @@
     const reconFilled = recon.openingCash||recon.actualCash||recon.closeStaff;
     if(!any && !expClean.length && !reconFilled){ toast('ยังไม่มีข้อมูลให้บันทึก'); return; }
     const btn=this; btn.disabled=true; btn.textContent='กำลังบันทึก...';
-    if(!HAS_GAS){
-      setTimeout(function(){toast('โหมดพรีวิว · บันทึกได้เมื่อรันบน Apps Script'); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน';},500);
-      return;
-    }
-    google.script.run.withSuccessHandler(function(res){
-      toast(res.msg); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน';
-      loadReportForDate(date);
-    }).withFailureHandler(function(err){ toast('ผิดพลาด: '+err.message); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน'; })
-    .saveDailyReport({date:date,sales:sales,note:document.getElementById('rNote').value,expenses:expClean,recon:recon});
+    api('saveDailyReport',{data:{date:date,sales:sales,note:document.getElementById('rNote').value,expenses:expClean,recon:recon}})
+      .then(function(res){
+        toast(res.msg||'บันทึกแล้ว ✓'); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน';
+        loadReportForDate(date);
+      })
+      .catch(function(err){ toast('ผิดพลาด: '+err.message); btn.disabled=false; btn.textContent='บันทึกรายงานสิ้นวัน'; });
   });
 
   /* ---------- Dashboard ---------- */
@@ -502,10 +513,9 @@
   function loadDashboard(){
     const start=document.getElementById('dStart').value,end=document.getElementById('dEnd').value;
     document.getElementById('dashBody').innerHTML='<div class="empty">กำลังโหลดข้อมูล...</div>';
-    if(!HAS_GAS){ document.getElementById('dashBody').innerHTML='<div class="card"><div class="empty">โหมดพรีวิว<br>แดชบอร์ดจะใช้งานได้เมื่อรันบน Apps Script และมีข้อมูลในชีต</div></div>'; return; }
-    google.script.run.withSuccessHandler(renderDash).withFailureHandler(function(e){
-      document.getElementById('dashBody').innerHTML='<div class="empty">โหลดไม่ได้: '+e.message+'</div>';
-    }).getDashboardData(start,end);
+    api('getDashboardData',{start:start,end:end})
+      .then(renderDash)
+      .catch(function(e){ document.getElementById('dashBody').innerHTML='<div class="empty">โหลดไม่ได้: '+e.message+'</div>'; });
   }
 
   function renderDash(d){
