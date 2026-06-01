@@ -1,0 +1,46 @@
+// Maru Waffle Service Worker
+// version: bump เลขเมื่ออัปเดต index.html เพื่อให้ client โหลดเวอร์ชันใหม่
+const CACHE_VERSION = 'maru-waffle-v1';
+const CACHE_FILES = ['./', './index.html', './manifest.webmanifest',
+                     './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(CACHE_FILES))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // ไม่ cache request ไปยัง Apps Script (API call) หรือ ImgBB upload
+  if (url.hostname.includes('script.google.com') || url.hostname.includes('imgbb.com') || url.hostname.includes('api.line.me')) {
+    return;  // ปล่อยให้ผ่าน network ปกติ
+  }
+
+  // Network-first สำหรับ index.html (เพื่อให้ได้เวอร์ชันใหม่ทุกครั้ง ถ้า online)
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')) {
+    event.respondWith(
+      fetch(event.request).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_VERSION).then((c) => c.put(event.request, copy));
+        return res;
+      }).catch(() => caches.match(event.request).then((r) => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache-first สำหรับไฟล์อื่น (ไอคอน, manifest, font)
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
+  );
+});
