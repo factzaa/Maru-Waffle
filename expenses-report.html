@@ -301,12 +301,18 @@
     const totalSales = Number(sales.total) || 0;
     const totalExpAll = Number(sales.totalExpenseAll) || 0;
     const daysWithSales = Math.max(1, Number(sales.daysWithSales) || 0);
+    const daysInRange = Math.max(1, Number(sales.daysInRange) || 0);
 
     // ถ้ายังไม่มียอดขายเลยในช่วงนี้ ก็ไม่ต้องโชว์ KPI
     if (totalSales <= 0) {
       document.getElementById('mgrKpi').innerHTML = '';
       return;
     }
+
+    // ข้อความช่วงวันที่ที่กำลังดู
+    const startDM = (document.getElementById('fStart').value || '').split('-').reverse().join('/');
+    const endDM   = (document.getElementById('fEnd').value   || '').split('-').reverse().join('/');
+    const rangeLabel = startDM + ' - ' + endDM + ' (' + daysInRange + ' วัน)';
 
     // คำนวณ
     const ratio = (totalExpAll / totalSales) * 100; // %
@@ -358,7 +364,7 @@
       insightTxt = '<b>ต้องปรับปรุงด่วน</b> ทั้งยอดขายต่ำและค่าใช้จ่ายสูงเกินเป้า · ตรวจสอบสาเหตุและวางแผนแก้ไขทันที';
     } else if (costStatus === 'bad' || costStatus === 'warn') {
       insightCls = 'warn'; insightEm = '💰';
-      insightTxt = '<b>ต้องควบคุมค่าใช้จ่าย</b> ตรวจสอบรายการสั่งของ ลดของเหลือทิ้ง และต่อรองราคากับซัพพลายเออร์';
+      insightTxt = '<b>ต้องควบคุมค่าใช้จ่าย</b> ตรวจสอบยอดสั่งของให้พอดีกับยอดขาย ลดของเหลือทิ้ง และดูแลให้พนักงานใช้วัตถุดิบอย่างประหยัด';
     } else {
       insightCls = 'warn'; insightEm = '📈';
       insightTxt = '<b>ต้องเร่งยอดขาย</b> เพิ่มโปรโมชั่น ขยายช่องทาง delivery หรือเพิ่มเมนูดึงดูดลูกค้า';
@@ -367,7 +373,7 @@
     const html =
       '<div class="mgr-kpi">'
       + '<div class="mh"><span class="em">🎯</span><div><div class="tl">สถานะการบริหารร้าน</div>'
-      + '<div class="ds">ตัวชี้วัด KPI สำหรับผู้จัดการ · ช่วงเวลาที่เลือก</div></div></div>'
+      + '<div class="ds">ช่วง: <b style="color:#FFC629;">'+rangeLabel+'</b> · คำนวณตามตัวกรองด้านบน</div></div></div>'
       + '<div class="gauges">'
         // Cost Ratio gauge
         + '<div class="gauge '+costStatus+'">'
