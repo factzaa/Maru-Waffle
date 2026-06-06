@@ -51,6 +51,54 @@
   .kpi.green .v{color:var(--green);}
   .kpi .sub{font-size:11px;color:var(--ink-2);margin-top:2px;}
 
+  /* ---------- KPI Dashboard for Manager ---------- */
+  .mgr-kpi{background:linear-gradient(135deg,#1A1A1A 0%,#2A2620 100%);border-radius:18px;padding:22px;margin-bottom:18px;
+    color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.18);}
+  .mgr-kpi .mh{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+  .mgr-kpi .mh .em{font-size:22px;}
+  .mgr-kpi .mh .tl{font-family:'Kanit';font-weight:700;font-size:17px;color:#FFC629;}
+  .mgr-kpi .mh .ds{font-size:12px;color:#9C8F7A;margin-top:1px;}
+  .mgr-kpi .gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+  .gauge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 18px;}
+  .gauge .gt{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px;}
+  .gauge .gt .lbl{font-family:'Kanit';font-weight:600;font-size:13px;color:#D4CFC4;}
+  .gauge .gt .pill{font-family:'Kanit';font-weight:700;font-size:11px;padding:3px 10px;border-radius:20px;color:#fff;}
+  .gauge .gt .pill.good{background:#1E9E50;}
+  .gauge .gt .pill.warn{background:#F37316;}
+  .gauge .gt .pill.bad{background:#D02C2C;}
+  .gauge .val{font-family:'Kanit';font-weight:800;font-size:30px;line-height:1;margin-bottom:8px;}
+  .gauge .val .small{font-size:18px;color:#9C8F7A;font-weight:500;margin-left:3px;}
+  .gauge.good .val{color:#5EE6A4;}
+  .gauge.warn .val{color:#FFB04A;}
+  .gauge.bad  .val{color:#FF7878;}
+  .gauge .bar-wrap{position:relative;height:10px;background:rgba(255,255,255,.08);border-radius:6px;overflow:visible;margin:14px 0 8px;}
+  .gauge .bar{position:absolute;top:0;left:0;height:100%;border-radius:6px;transition:width .8s cubic-bezier(.2,.8,.2,1);
+    background:linear-gradient(90deg,#1E9E50,#5EE6A4);}
+  .gauge.warn .bar{background:linear-gradient(90deg,#F37316,#FFB04A);}
+  .gauge.bad  .bar{background:linear-gradient(90deg,#D02C2C,#FF7878);}
+  .gauge .target-mark{position:absolute;top:-3px;width:2px;height:16px;background:#FFC629;border-radius:2px;}
+  .gauge .target-mark::after{content:attr(data-label);position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+    font-size:9.5px;font-weight:700;color:#FFC629;white-space:nowrap;font-family:'Kanit';}
+  .gauge .gfoot{font-size:12px;color:#9C8F7A;line-height:1.4;}
+  .gauge .gfoot b{color:#fff;font-family:'Kanit';font-weight:600;}
+
+  .insight-box{margin-top:16px;background:rgba(255,198,41,.1);border:1px solid rgba(255,198,41,.25);
+    border-radius:12px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start;}
+  .insight-box.good{background:rgba(30,158,80,.12);border-color:rgba(94,230,164,.3);}
+  .insight-box.warn{background:rgba(243,115,22,.12);border-color:rgba(255,176,74,.35);}
+  .insight-box.bad {background:rgba(208,44,44,.15);border-color:rgba(255,120,120,.4);}
+  .insight-box .em2{font-size:18px;flex:none;line-height:1.3;}
+  .insight-box .txt{font-size:13px;color:#E8E0C8;line-height:1.5;}
+  .insight-box .txt b{color:#FFC629;font-family:'Kanit';font-weight:700;}
+  .insight-box.bad .txt b{color:#FF9898;}
+  .insight-box.good .txt b{color:#5EE6A4;}
+
+  @media (max-width:560px){
+    .mgr-kpi{padding:18px 14px;}
+    .mgr-kpi .gauges{grid-template-columns:1fr;}
+    .gauge .val{font-size:26px;}
+  }
+
   .group{margin-bottom:24px;}
   .group-h{font-family:'Kanit';font-weight:700;font-size:14px;color:var(--ink-2);margin:0 4px 10px;
     display:flex;align-items:center;gap:8px;}
@@ -148,6 +196,7 @@
   </div>
 
   <div class="body">
+    <div id="mgrKpi"></div>
     <div class="summary" id="summary"></div>
     <div id="results"><div class="loading">กำลังโหลด...</div></div>
   </div>
@@ -164,6 +213,11 @@
 
 <script>
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxM4wS8A69veJY-4YTXJg2nbQKC-AaG88VDLSfp_SHX9SsUf2yhd6xv4ICKJPyVHnLDeg/exec';
+
+  // === KPI เป้าหมาย (สำหรับวัดผลงานผู้จัดการ) ===
+  const KPI_COST_RATIO_MAX  = 30;        // ค่าใช้จ่ายต้องไม่เกิน 30% ของยอดขาย
+  const KPI_DAILY_SALES_MIN = 3666.67;   // ยอดขายเฉลี่ยต่อวันต้องไม่ต่ำกว่า ฿3,666.67
+  const KPI_MONTHLY_SALES   = 110000;    // (อ้างอิง) ยอดขายต่อเดือนเป้าหมาย
 
   function toast(msg){
     const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
@@ -232,13 +286,118 @@
     const type = document.getElementById('fType').value;
     document.getElementById('results').innerHTML = '<div class="loading">กำลังโหลด...</div>';
     document.getElementById('summary').innerHTML = '';
+    document.getElementById('mgrKpi').innerHTML = '';
     try{
       const res = await api('getExpensesReport', { start:start, end:end, type:type });
+      renderManagerKPI(res.sales || {}, res.summary || {});
       renderSummary(res.summary, type);
       renderItems(res.items || []);
     }catch(err){
       document.getElementById('results').innerHTML = '<div class="empty"><div class="ic">⚠️</div>โหลดไม่ได้: '+err.message+'</div>';
     }
+  }
+
+  function renderManagerKPI(sales, summary){
+    const totalSales = Number(sales.total) || 0;
+    const totalExpAll = Number(sales.totalExpenseAll) || 0;
+    const daysWithSales = Math.max(1, Number(sales.daysWithSales) || 0);
+
+    // ถ้ายังไม่มียอดขายเลยในช่วงนี้ ก็ไม่ต้องโชว์ KPI
+    if (totalSales <= 0) {
+      document.getElementById('mgrKpi').innerHTML = '';
+      return;
+    }
+
+    // คำนวณ
+    const ratio = (totalExpAll / totalSales) * 100; // %
+    const avgDaily = totalSales / daysWithSales;
+
+    // -- Cost Ratio status --
+    let costStatus, costPill, costMsg;
+    if (ratio <= KPI_COST_RATIO_MAX) {
+      costStatus = 'good'; costPill = '✓ อยู่ในเกณฑ์';
+      costMsg = 'บริหารค่าใช้จ่ายได้ดี <b>ต่ำกว่าเป้า ' + (KPI_COST_RATIO_MAX - ratio).toFixed(1) + '%</b>';
+    } else if (ratio <= KPI_COST_RATIO_MAX + 5) {
+      costStatus = 'warn'; costPill = '! เกินเป้าเล็กน้อย';
+      const excess = totalExpAll - (totalSales * KPI_COST_RATIO_MAX / 100);
+      costMsg = 'เกินเป้า <b>' + (ratio - KPI_COST_RATIO_MAX).toFixed(1) + '%</b> · ต้องลดค่าใช้จ่ายลง <b>'+baht(excess)+'</b> เพื่อเข้าเป้า';
+    } else {
+      costStatus = 'bad'; costPill = '⚠ เกินเป้ามาก';
+      const excess = totalExpAll - (totalSales * KPI_COST_RATIO_MAX / 100);
+      costMsg = 'ค่าใช้จ่ายสูงเกินไป <b>' + (ratio - KPI_COST_RATIO_MAX).toFixed(1) + '%</b> · ต้องลดทันที <b>'+baht(excess)+'</b>';
+    }
+
+    // -- Sales Target status --
+    let salesStatus, salesPill, salesMsg;
+    const salesPct = (avgDaily / KPI_DAILY_SALES_MIN) * 100;
+    if (avgDaily >= KPI_DAILY_SALES_MIN) {
+      salesStatus = 'good'; salesPill = '✓ ทำได้เกินเป้า';
+      salesMsg = 'ยอดขายเฉลี่ยสูงกว่าเป้า <b>'+(salesPct-100).toFixed(1)+'%</b>';
+    } else if (salesPct >= 80) {
+      salesStatus = 'warn'; salesPill = '! ใกล้เป้า';
+      const gap = (KPI_DAILY_SALES_MIN - avgDaily) * daysWithSales;
+      salesMsg = 'ต่ำกว่าเป้า <b>'+(100-salesPct).toFixed(1)+'%</b> · ต้องเร่งยอดอีก <b>'+baht(gap)+'</b> ในช่วงนี้';
+    } else {
+      salesStatus = 'bad'; salesPill = '⚠ ต่ำกว่าเป้ามาก';
+      const gap = (KPI_DAILY_SALES_MIN - avgDaily) * daysWithSales;
+      salesMsg = 'ยอดขายต่ำกว่าเป้า <b>'+(100-salesPct).toFixed(1)+'%</b> · ต้องเพิ่ม <b>'+baht(gap)+'</b>';
+    }
+
+    // bar widths (clamp)
+    const costBarPct = Math.min(100, ratio / (KPI_COST_RATIO_MAX * 1.5) * 100); // max bar = 1.5x target
+    const targetPosOnCostBar = (KPI_COST_RATIO_MAX / (KPI_COST_RATIO_MAX * 1.5)) * 100; // ≈ 66.67%
+    const salesBarPct = Math.min(100, salesPct);
+
+    // -- Insight box (รวมข้อความสำหรับผู้จัดการ) --
+    let insightCls, insightEm, insightTxt;
+    if (costStatus === 'good' && salesStatus === 'good') {
+      insightCls = 'good'; insightEm = '🎉';
+      insightTxt = '<b>ทำได้ดีเยี่ยม!</b> ทั้งยอดขายและการควบคุมค่าใช้จ่ายอยู่ในเกณฑ์เป้าหมาย ผู้จัดการมีสิทธิรับ<b>อินเซนทีฟเต็มจำนวน</b>';
+    } else if (costStatus === 'bad' && salesStatus === 'bad') {
+      insightCls = 'bad'; insightEm = '🚨';
+      insightTxt = '<b>ต้องปรับปรุงด่วน</b> ทั้งยอดขายต่ำและค่าใช้จ่ายสูงเกินเป้า · ตรวจสอบสาเหตุและวางแผนแก้ไขทันที';
+    } else if (costStatus === 'bad' || costStatus === 'warn') {
+      insightCls = 'warn'; insightEm = '💰';
+      insightTxt = '<b>ต้องควบคุมค่าใช้จ่าย</b> ตรวจสอบรายการสั่งของ ลดของเหลือทิ้ง และต่อรองราคากับซัพพลายเออร์';
+    } else {
+      insightCls = 'warn'; insightEm = '📈';
+      insightTxt = '<b>ต้องเร่งยอดขาย</b> เพิ่มโปรโมชั่น ขยายช่องทาง delivery หรือเพิ่มเมนูดึงดูดลูกค้า';
+    }
+
+    const html =
+      '<div class="mgr-kpi">'
+      + '<div class="mh"><span class="em">🎯</span><div><div class="tl">สถานะการบริหารร้าน</div>'
+      + '<div class="ds">ตัวชี้วัด KPI สำหรับผู้จัดการ · ช่วงเวลาที่เลือก</div></div></div>'
+      + '<div class="gauges">'
+        // Cost Ratio gauge
+        + '<div class="gauge '+costStatus+'">'
+          + '<div class="gt"><span class="lbl">ค่าใช้จ่าย / ยอดขาย</span><span class="pill '+costStatus+'">'+costPill+'</span></div>'
+          + '<div class="val">'+ratio.toFixed(1)+'<span class="small">%</span></div>'
+          + '<div class="bar-wrap"><div class="bar" style="width:'+costBarPct+'%"></div>'
+          + '<div class="target-mark" data-label="เป้า ≤'+KPI_COST_RATIO_MAX+'%" style="left:'+targetPosOnCostBar+'%"></div></div>'
+          + '<div class="gfoot">ค่าใช้จ่ายรวม <b>'+baht(totalExpAll)+'</b> · ยอดขาย <b>'+baht(totalSales)+'</b></div>'
+        + '</div>'
+        // Sales Target gauge
+        + '<div class="gauge '+salesStatus+'">'
+          + '<div class="gt"><span class="lbl">ยอดขายเฉลี่ย/วัน</span><span class="pill '+salesStatus+'">'+salesPill+'</span></div>'
+          + '<div class="val">'+baht(avgDaily).replace('฿','฿')+'</div>'
+          + '<div class="bar-wrap"><div class="bar" style="width:'+salesBarPct+'%"></div>'
+          + '<div class="target-mark" data-label="เป้า '+baht(KPI_DAILY_SALES_MIN)+'" style="left:100%"></div></div>'
+          + '<div class="gfoot">เปิดร้าน <b>'+daysWithSales+' วัน</b> · ยอดขายรวม <b>'+baht(totalSales)+'</b></div>'
+        + '</div>'
+      + '</div>'
+      // Insight box
+      + '<div class="insight-box '+insightCls+'"><span class="em2">'+insightEm+'</span><div class="txt">'+insightTxt+' · '+costMsg+' · '+salesMsg+'</div></div>'
+      + '</div>';
+
+    document.getElementById('mgrKpi').innerHTML = html;
+
+    // animate bar fill
+    setTimeout(function(){
+      document.querySelectorAll('.mgr-kpi .bar').forEach(function(b){
+        const w = b.style.width; b.style.width = '0'; void b.offsetWidth; b.style.width = w;
+      });
+    }, 50);
   }
 
   function renderSummary(s, type){
