@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ปิดร้าน · Maru Waffle</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFC629">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.close-row{background:#fff;border-radius:11px;padding:10px 12px;margin-bottom:6px;display:grid;
+  grid-template-columns:1fr auto;gap:6px 10px;align-items:center;border-left:3px solid transparent;}
+.close-row.count-mode{border-left-color:#F37316;background:#FFFBEB;}
+.close-row .nm{font-family:'Kanit';font-weight:600;font-size:13px;color:var(--ink);line-height:1.25;}
+.close-row .nm .u{font-size:10.5px;color:var(--ink-2);font-weight:500;margin-left:4px;}
+.close-row .nm .mp{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;}
+.close-row .nm .mp.count{background:#FEF3C7;color:#92400E;}
+.close-row .nm .mp.withdraw{background:#DCFCE7;color:#15803D;}
+.close-row .meta{font-size:10.5px;color:var(--ink-2);margin-top:2px;}
+.close-row .meta b{color:var(--ink);}
+.close-row .fields{display:flex;gap:5px;align-items:center;}
+.close-row .fields .grp{display:flex;flex-direction:column;align-items:flex-start;}
+.close-row .fields .grp .lbl{font-size:9.5px;color:var(--ink-2);font-weight:600;margin-bottom:2px;}
+.close-row .fields input{width:62px;border:1.5px solid var(--line);border-radius:7px;padding:5px 7px;
+  font-size:13px;font-family:'Kanit';font-weight:700;text-align:right;background:#fff;}
+.close-row .fields input.closing{border-color:#FCD34D;background:#FEF9E7;}
+.close-row .calc{font-size:11px;color:var(--ink-2);margin-top:3px;grid-column:1/-1;border-top:1px dashed var(--line);padding-top:3px;}
+.close-row .calc b.use{color:var(--red);}
+.close-row .calc b.left{color:var(--green);}
+.close-row .calc b.diff{color:#F37316;}
+
+.close-info{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#78350F;line-height:1.6;}
+.close-info b{color:#92400E;}
+
+.op-bar{position:sticky;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:12px 14px;
+  box-shadow:0 -4px 14px rgba(0,0,0,.08);margin-top:14px;display:flex;align-items:center;gap:10px;}
+.op-bar .cnt{flex:1;font-family:'Kanit';font-weight:600;font-size:13px;color:var(--ink-2);}
+.op-bar .cnt b{color:var(--ink);font-size:15px;}
+.op-bar button{flex:none;padding:10px 18px;border:0;border-radius:10px;font-family:'Kanit';font-weight:700;
+  font-size:14px;cursor:pointer;background:var(--yellow);color:var(--ink);box-shadow:0 3px 10px rgba(242,177,0,.4);}
+.op-bar button:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="head">
+    <img class="logo" src="icon-192.png" alt="">
+    <h1>ปิดร้าน · สรุปสต๊อก</h1>
+    <div class="sub">Maru Waffle · สรุปสต๊อกประจำวัน</div>
+  </div>
+
+  <div class="sheet">
+    <div class="card">
+      <div class="h"><span class="ic" style="background:linear-gradient(135deg,#A78BFA,#6D28D9);" data-icon="check"></span>ปิดร้าน · สรุปสต๊อกประจำวัน</div>
+
+      <div class="close-info">
+        <b>วิธีใช้:</b><br>
+        · <b>เบิก (ของชิ้น/ถุง)</b> — คงเหลือคำนวณอัตโนมัติจากที่เบิกระหว่างวัน หากจะตรวจสอบให้กรอกคงเหลือก็ได้<br>
+        · <b>นับ (กรัม/ml)</b> — <b style="color:#92400E;">บังคับกรอกคงเหลือ</b> (ชั่งจริง) → ระบบคำนวณ "ใช้จริง" ให้<br>
+        · <b>ของเสีย</b> — กรอกถ้ามี (ค่าเริ่มต้น 0)
+      </div>
+
+      <div class="staff-box">
+        <label>ผู้ปิดรอบ</label>
+        <input type="text" id="clStaff" placeholder="ชื่อพนักงาน">
+      </div>
+
+      <div class="stock-filters" id="clCatChips" style="background:transparent;padding:0;">
+        <button class="stock-cat-chip on" data-cat="all">ทั้งหมด</button>
+        <button class="stock-cat-chip" data-cat="Waffle">🧁 Waffle</button>
+        <button class="stock-cat-chip" data-cat="KUFF">🥐 KUFF</button>
+        <button class="stock-cat-chip" data-cat="Drink">🥤 Drink</button>
+        <button class="stock-cat-chip" data-cat="Other">📦 อื่นๆ</button>
+        <button class="stock-cat-chip" data-cat="count" style="background:#FEF3C7;border-color:#FCD34D;color:#92400E;">🟡 ต้องนับ</button>
+      </div>
+      <div class="stock-filters">
+        <input type="search" id="clSearch" placeholder="ค้นหารายการ...">
+      </div>
+
+      <div id="clList"><div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div></div>
+
+      <textarea id="clNote" placeholder="หมายเหตุประจำวัน (ไม่บังคับ)" style="width:100%;margin-top:12px;border:1.5px solid var(--line);border-radius:11px;padding:10px;font-size:14px;font-family:'Sarabun';min-height:60px;resize:vertical;"></textarea>
+    </div>
+  </div>
+
+  <div class="op-bar">
+    <div class="cnt">พร้อมปิดรอบ <b id="clCount">0</b> รายการ</div>
+    <button id="clSaveBtn">🌙 ปิดรอบ · ส่ง LINE</button>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+injectShell('stockClose');
+registerSW();
+
+const cl = { balances: [], filter: { cat: 'all', q: '' }, wastes: {}, closings: {} };
+
+function load(){
+  const box = document.getElementById('clList');
+  box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
+  api('getStockBalances', {})
+    .then(function(res){
+      cl.balances = (res.items||[]).filter(function(x){return x.active!==false;});
+      render();
+    })
+    .catch(function(err){
+      box.innerHTML = '<div style="color:var(--red);padding:14px;font-size:13px;">โหลดไม่ได้: '+escHtml(err.message)+'</div>';
+    });
+}
+
+function render(){
+  const q = (cl.filter.q||'').toLowerCase();
+  const cat = cl.filter.cat;
+  const filtered = cl.balances.filter(function(it){
+    if(cat==='count') { if(it.mode!=='count') return false; }
+    else if(cat!=='all' && it.category!==cat) return false;
+    if(q && it.name.toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  const box = document.getElementById('clList');
+  if(!filtered.length){ box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">ไม่พบรายการ</div>'; return; }
+  box.innerHTML = filtered.map(function(it){
+    // opening = คงเหลือก่อนวันนี้ = balance + todayWithdraw - todayReceive
+    const open = it.balance + it.todayWithdraw - it.todayReceive;
+    const recv = it.todayReceive;
+    const used = it.todayWithdraw;
+    const waste = parseFloat(cl.wastes[it.id])||0;
+    const cVal = cl.closings[it.id];
+    let calcLine = '';
+    if (cVal !== undefined && cVal !== '') {
+      const closing = parseFloat(cVal)||0;
+      const actUse = open + recv - closing - waste;
+      const diff = actUse - used;
+      calcLine = 'ใช้จริง <b class="use">'+actUse.toFixed(2)+'</b> · คงเหลือ <b class="left">'+closing.toFixed(2)+'</b>'
+        + (Math.abs(diff)>0.01 ? ' · ส่วนต่าง <b class="diff">'+(diff>0?'+':'')+diff.toFixed(2)+'</b>' : '');
+    } else {
+      const closing = open + recv - used - waste;
+      calcLine = 'คงเหลือ (คำนวณ) <b class="left">'+closing.toFixed(2)+'</b>';
+    }
+    const cls = it.mode==='count' ? 'count-mode' : '';
+    const modePill = it.mode==='count'
+      ? '<span class="mp count">ชั่ง</span>'
+      : '<span class="mp withdraw">เบิก</span>';
+    return '<div class="close-row '+cls+'" data-id="'+it.id+'">'
+      +'<div>'
+        +'<div class="nm">'+escHtml(it.name)+'<span class="u">('+escHtml(it.unit)+')</span>'+modePill+'</div>'
+        +'<div class="meta">เปิด <b>'+open.toFixed(2)+'</b> · รับเข้า <b>'+recv.toFixed(2)+'</b> · เบิก <b>'+used.toFixed(2)+'</b></div>'
+      +'</div>'
+      +'<div class="fields">'
+        +'<div class="grp"><span class="lbl">ของเสีย</span><input type="number" inputmode="decimal" step="any" min="0" data-f="waste" data-id="'+it.id+'" value="'+(cl.wastes[it.id]||'')+'" placeholder="0"></div>'
+        +'<div class="grp"><span class="lbl">คงเหลือ'+(it.mode==='count'?' *':'')+'</span><input type="number" inputmode="decimal" step="any" min="0" data-f="closing" data-id="'+it.id+'" value="'+(cVal||'')+'" placeholder="-" class="closing"></div>'
+      +'</div>'
+      +'<div class="calc">'+calcLine+'</div>'
+    +'</div>';
+  }).join('');
+  box.querySelectorAll('input[data-f]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      const id = inp.dataset.id; const f = inp.dataset.f;
+      if(inp.value === '' || isNaN(parseFloat(inp.value))){
+        if(f==='waste') delete cl.wastes[id];
+        else delete cl.closings[id];
+      } else {
+        if(f==='waste') cl.wastes[id] = inp.value;
+        else cl.closings[id] = inp.value;
+      }
+      render();
+    });
+  });
+  document.getElementById('clCount').textContent = cl.balances.length;
+}
+
+// Filter chips + search
+document.querySelectorAll('#clCatChips .stock-cat-chip').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('#clCatChips .stock-cat-chip').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    cl.filter.cat = b.dataset.cat;
+    render();
+  });
+});
+document.getElementById('clSearch').addEventListener('input', function(){ cl.filter.q = this.value; render(); });
+
+// Save
+document.getElementById('clSaveBtn').addEventListener('click', function(){
+  const staff = document.getElementById('clStaff').value.trim();
+  if(!staff){ toast('กรุณากรอกชื่อผู้ปิดรอบ'); return; }
+  const missing = cl.balances.filter(function(it){
+    return it.mode==='count' && (cl.closings[it.id]===undefined || cl.closings[it.id]==='');
+  });
+  if(missing.length){
+    if(!confirm('มีรายการที่ต้องนับ '+missing.length+' รายการยังไม่ได้กรอกคงเหลือ ปิดรอบเลยหรือไม่?')) return;
+  }
+  const btn = this; btn.disabled=true; btn.textContent='กำลังปิดรอบ...';
+  api('closeDailyStock', { data: {
+    staff: staff,
+    wastes: cl.wastes,
+    closings: cl.closings,
+    note: document.getElementById('clNote').value
+  } })
+    .then(function(res){
+      toast(res.msg||'ปิดรอบแล้ว ✓');
+      btn.disabled=false; btn.textContent='🌙 ปิดรอบ · ส่ง LINE';
+      cl.wastes = {}; cl.closings = {};
+      document.getElementById('clNote').value = '';
+      load();
+    })
+    .catch(function(err){
+      toast('ผิดพลาด: '+err.message);
+      btn.disabled=false; btn.textContent='🌙 ปิดรอบ · ส่ง LINE';
+    });
+});
+
+renderIcons();
+load();
+</script>
+</body>
+</html>
