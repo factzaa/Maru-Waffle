@@ -179,6 +179,7 @@
           <h2 id="resTitle">บันทึกเข้างานสำเร็จ</h2>
           <div class="time" id="resTime">--:--</div>
           <div class="sub" id="resSub">-</div>
+          <div id="resLine" style="margin-top:10px;font-size:12.5px;font-family:'Kanit';font-weight:600;"></div>
           <img class="result-img" id="resImg" alt="">
         </div>
         <button class="btn" style="margin-top:14px;" onclick="location.reload()">⏰ ลงเวลาคนอื่น</button>
@@ -512,6 +513,22 @@ function showResult(type, imgDataUrl, response){
   $('resTime').textContent = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   $('resSub').textContent = (verified.nickname || verified.name) + (gpsData && gpsData.inGeofence ? ' · ✓ ในเขตร้าน' : ' · ⚠️ นอกเขตร้าน');
   $('resImg').src = response.imgUrl || imgDataUrl;
+  // LINE status
+  const ls = response.lineStatus;
+  const resLine = $('resLine');
+  if (ls && ls.status === 200) {
+    resLine.style.color = '#15803D';
+    resLine.textContent = '✓ ส่ง LINE แล้ว';
+  } else if (ls && ls.status) {
+    resLine.style.color = '#B91C1C';
+    resLine.innerHTML = '⚠️ ส่ง LINE ไม่สำเร็จ (HTTP ' + ls.status + ')<br><small style="font-weight:400;">' + escHtml((ls.body || ls.error || '').slice(0, 200)) + '</small>';
+  } else if (ls && ls.error) {
+    resLine.style.color = '#B91C1C';
+    resLine.textContent = '⚠️ LINE: ' + ls.error;
+  } else {
+    resLine.style.color = '#6B5F4A';
+    resLine.textContent = 'ℹ️ LINE: ไม่ได้ตั้งค่า';
+  }
   goStep(4);
 }
 
