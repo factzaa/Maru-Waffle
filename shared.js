@@ -80,6 +80,9 @@ function buildSidebar(currentPage){
     { page:'stockClose',     href:'stock-close.html',     icon:'check',   label:'ปิดร้าน (สรุปสต๊อก)' },
     { page:'stockAudit',     href:'stock-audit.html',     icon:'check',   label:'ออดิทสต๊อก' },
     { page:'stockManage',    href:'stock-manage.html',    icon:'edit',    label:'จัดการรายการ' },
+    { group: '⏰ เข้า-ออกงาน' },
+    { page:'attend',         href:'attend.html',          icon:'check',   label:'บันทึกเข้างาน' },
+    { page:'attendSetup',    href:'attend-setup.html',    icon:'edit',    label:'จัดการพนักงาน/สาขา' },
   ];
   return items.map(function(it){
     if(it.group) return '<div class="sb-group">'+it.group+'</div>';
