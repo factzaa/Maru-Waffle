@@ -82,6 +82,7 @@ function buildSidebar(currentPage){
     { page:'stockManage',    href:'stock-manage.html',    icon:'edit',    label:'จัดการรายการ' },
     { group: '⏰ เข้า-ออกงาน' },
     { page:'attend',         href:'attend.html',          icon:'check',   label:'บันทึกเข้างาน' },
+    { page:'attendReport',   href:'attend-report.html',   icon:'trend',   label:'รายงานเข้า-ออกงาน' },
     { page:'attendSetup',    href:'attend-setup.html',    icon:'edit',    label:'จัดการพนักงาน/สาขา' },
   ];
   return items.map(function(it){
