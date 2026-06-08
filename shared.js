@@ -74,6 +74,7 @@ function buildSidebar(currentPage){
     { page:'dash',           href:'index.html#dash',      icon:'dash',    label:'แดชบอร์ดยอดขาย' },
     { page:'expreport',      href:'expenses-report.html', icon:'trend',   label:'รายงานสรุปค่าใช้จ่าย' },
     { group: '📦 สต๊อกสินค้า' },
+    { page:'stockDashboard', href:'stock-dashboard.html', icon:'dash',    label:'แดชบอร์ดสต๊อก' },
     { page:'stockView',      href:'stock-view.html',      icon:'store',   label:'ตรวจสต๊อก' },
     { page:'stockWithdraw',  href:'stock-withdraw.html',  icon:'edit',    label:'เบิกของ' },
     { page:'stockReceive',   href:'stock-receive.html',   icon:'receipt', label:'รับของเข้า' },
