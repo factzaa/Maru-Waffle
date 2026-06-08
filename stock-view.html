@@ -80,8 +80,7 @@ let stockData = { items: [], summary: {}, filter: { cat: 'all', q: '' } };
 
 function loadStockView(){
   document.getElementById('stockList').innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
-  api('getStockBalances', {})
-    .then(function(res){
+  apiSWR('getStockBalances', {}, function(res){
       stockData.items = res.items || [];
       stockData.summary = res.summary || {};
       renderStockSummary();
