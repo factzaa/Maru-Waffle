@@ -23,6 +23,39 @@
 .mg-row .fields input[type=number]{text-align:right;font-weight:600;}
 .mg-row .saved-tick{color:var(--green-ok);font-size:11px;font-weight:700;display:none;}
 .mg-row.saved .saved-tick{display:inline;}
+
+/* Add button */
+.add-bar{display:flex;gap:8px;margin-bottom:14px;}
+.add-btn{flex:1;background:linear-gradient(135deg,#22C55E,#15803D);color:#fff;border:0;padding:11px 14px;border-radius:11px;
+  font-family:'Kanit';font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 3px 10px rgba(34,197,94,.25);}
+.add-btn:active{transform:scale(.98);}
+
+/* Delete button on row */
+.mg-row .del-btn{background:#FEE2E2;color:#B91C1C;border:0;padding:6px 12px;border-radius:9px;
+  font-family:'Kanit';font-weight:700;font-size:12px;cursor:pointer;}
+.mg-row .del-btn:hover{background:#FECACA;}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:100;align-items:flex-end;justify-content:center;}
+.modal.show{display:flex;}
+.modal .body{background:#fff;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal h3{font-family:'Kanit';font-weight:700;font-size:17px;color:var(--ink);margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+.modal h3 .close-x{margin-left:auto;background:#F2EEDD;color:var(--ink);border:0;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;}
+.modal .row{margin-bottom:11px;}
+.modal label{font-size:12px;color:var(--ink-2);font-weight:600;display:block;margin-bottom:4px;}
+.modal input,.modal select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;font-family:'Kanit';background:#fff;box-sizing:border-box;}
+.modal .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal .actions{display:flex;gap:8px;margin-top:14px;}
+.modal .actions button{flex:1;padding:11px;border-radius:11px;font-family:'Kanit';font-weight:700;font-size:14px;cursor:pointer;border:0;}
+.modal .actions .cancel{background:#F2EEDD;color:var(--ink);}
+.modal .actions .ok{background:linear-gradient(135deg,#22C55E,#15803D);color:#fff;}
+.modal .actions .ok-del{background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff;}
+
+/* Confirm dialog */
+.confirm-msg{font-size:13.5px;color:var(--ink);line-height:1.55;background:#FEF3C7;padding:11px 13px;border-radius:10px;border-left:3px solid #F59E0B;margin-bottom:12px;}
+.confirm-msg b{color:#92400E;}
 </style>
 </head>
 <body>
@@ -43,6 +76,10 @@
         · <b>count</b> = นับคงเหลือสิ้นวัน (กรัม/ml — ต้องชั่ง)
       </p>
 
+      <div class="add-bar">
+        <button class="add-btn" id="btnAddItem"><span>➕</span> เพิ่มรายการใหม่</button>
+      </div>
+
       <div class="stock-filters" id="mgrCatChips" style="background:transparent;padding:0;">
         <button class="stock-cat-chip on" data-cat="all">ทั้งหมด</button>
         <button class="stock-cat-chip" data-cat="Waffle">🧁 Waffle</button>
@@ -57,6 +94,61 @@
       <div id="mgrList"><div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div></div>
     </div>
     <div class="foot">🐤 บันทึกการตั้งค่าทีละรายการ</div>
+  </div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal" id="addModal">
+  <div class="body">
+    <h3>➕ เพิ่มรายการสต๊อกใหม่ <button class="close-x" id="addClose">✕</button></h3>
+    <div class="row">
+      <label>ชื่อรายการ <span style="color:#EF4444;">*</span></label>
+      <input type="text" id="addName" placeholder="เช่น แป้งวาฟเฟิลใบเตย">
+    </div>
+    <div class="grid2">
+      <div class="row">
+        <label>หมวด <span style="color:#EF4444;">*</span></label>
+        <select id="addCategory">
+          <option value="Waffle">🧁 Waffle</option>
+          <option value="KUFF">🥐 KUFF</option>
+          <option value="Drink">🥤 Drink</option>
+          <option value="Others">📦 Others</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>หน่วย <span style="color:#EF4444;">*</span></label>
+        <input type="text" id="addUnit" placeholder="ถุง / ขวด / กรัม">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="row">
+        <label>โหมด</label>
+        <select id="addMode">
+          <option value="withdraw">คีย์เบิก (ของชิ้น)</option>
+          <option value="count">นับสิ้นวัน (กรัม/ml)</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>สต๊อกขั้นต่ำ</label>
+        <input type="number" id="addMinStock" min="0" step="any" value="0" style="text-align:right;font-weight:600;">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="cancel" id="addCancel">ยกเลิก</button>
+      <button class="ok" id="addSubmit">เพิ่มรายการ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal" id="delModal">
+  <div class="body">
+    <h3>🗑 ลบรายการ <button class="close-x" id="delClose">✕</button></h3>
+    <div id="delMsg" class="confirm-msg"></div>
+    <div class="actions">
+      <button class="cancel" id="delCancel">ยกเลิก</button>
+      <button class="ok-del" id="delConfirm">ยืนยันลบ</button>
+    </div>
   </div>
 </div>
 
@@ -94,14 +186,20 @@ function renderMgrList(){
         +'<div><label>สต๊อกขั้นต่ำ (เตือนใกล้หมด)</label><input type="number" min="0" step="any" data-f="minStock" value="'+it.minStock+'"></div>'
         +'<div><label>สถานะ</label><select data-f="active"><option value="true"'+(it.active!==false?' selected':'')+'>ใช้งาน</option><option value="false"'+(it.active===false?' selected':'')+'>หยุดใช้</option></select></div>'
       +'</div>'
-      +'<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;align-items:center;">'
-        +'<span class="saved-tick">✓ บันทึกแล้ว</span>'
-        +'<button type="button" class="rcpt-btn done mg-save" data-id="'+it.id+'">บันทึก</button>'
+      +'<div style="display:flex;justify-content:space-between;gap:10px;margin-top:10px;align-items:center;">'
+        +'<button type="button" class="del-btn mg-del" data-id="'+it.id+'" data-name="'+escHtml(it.name)+'">🗑 ลบ</button>'
+        +'<div style="display:flex;gap:10px;align-items:center;">'
+          +'<span class="saved-tick">✓ บันทึกแล้ว</span>'
+          +'<button type="button" class="rcpt-btn done mg-save" data-id="'+it.id+'">บันทึก</button>'
+        +'</div>'
       +'</div>'
     +'</div>';
   }).join('');
   box.querySelectorAll('.mg-save').forEach(function(btn){
     btn.addEventListener('click', function(){ saveMgrItem(btn.dataset.id); });
+  });
+  box.querySelectorAll('.mg-del').forEach(function(btn){
+    btn.addEventListener('click', function(){ openDeleteModal(btn.dataset.id, btn.dataset.name); });
   });
 }
 function saveMgrItem(id){
@@ -137,6 +235,97 @@ document.querySelectorAll('#mgrCatChips .stock-cat-chip').forEach(function(b){
     mgrData.filter.cat = b.dataset.cat;
     renderMgrList();
   });
+});
+
+// ===== Add Item Modal =====
+const $ = function(id){return document.getElementById(id);};
+
+function openAddModal(){
+  // reset form
+  $('addName').value = '';
+  $('addCategory').value = 'Waffle';
+  $('addUnit').value = '';
+  $('addMode').value = 'withdraw';
+  $('addMinStock').value = '0';
+  $('addModal').classList.add('show');
+  setTimeout(function(){ $('addName').focus(); }, 100);
+}
+function closeAddModal(){ $('addModal').classList.remove('show'); }
+
+$('btnAddItem').addEventListener('click', openAddModal);
+$('addClose').addEventListener('click', closeAddModal);
+$('addCancel').addEventListener('click', closeAddModal);
+$('addModal').addEventListener('click', function(e){ if(e.target===$('addModal')) closeAddModal(); });
+
+// auto-suggest mode by unit
+$('addUnit').addEventListener('input', function(){
+  const u = this.value.toLowerCase();
+  if (u.indexOf('กรัม') >= 0 || u.indexOf('มล') >= 0 || u.indexOf('ml') >= 0 || u.indexOf('g') === u.length-1) {
+    $('addMode').value = 'count';
+  } else if (u.length > 0) {
+    $('addMode').value = 'withdraw';
+  }
+});
+
+$('addSubmit').addEventListener('click', function(){
+  const name = $('addName').value.trim();
+  const unit = $('addUnit').value.trim();
+  if (!name) { toast('กรุณากรอกชื่อรายการ'); $('addName').focus(); return; }
+  if (!unit) { toast('กรุณากรอกหน่วย'); $('addUnit').focus(); return; }
+  const data = {
+    name: name,
+    category: $('addCategory').value,
+    unit: unit,
+    mode: $('addMode').value,
+    minStock: parseFloat($('addMinStock').value) || 0,
+    active: true
+  };
+  const btn = $('addSubmit');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  api('addStockItem', { data: data })
+    .then(function(res){
+      btn.disabled = false; btn.textContent = 'เพิ่มรายการ';
+      closeAddModal();
+      toast(res.msg);
+      loadStockManage(); // reload list
+    })
+    .catch(function(err){
+      btn.disabled = false; btn.textContent = 'เพิ่มรายการ';
+      toast('ผิดพลาด: '+err.message);
+    });
+});
+
+// ===== Delete Item Modal =====
+let pendingDelete = { id: '', name: '' };
+
+function openDeleteModal(id, name){
+  pendingDelete = { id: id, name: name };
+  $('delMsg').innerHTML = 'ต้องการลบ <b>"'+escHtml(name)+'"</b> (' + id + ') หรือไม่?<br><br>'
+    + '<b>ปิดใช้งานเท่านั้น</b> (soft delete) — ของจะหายจากเมนูแต่ประวัติเก่ายังอยู่ในระบบ<br>'
+    + 'ถ้าต้องการลบถาวร: ถ้าไม่เคยมีประวัติ เบิก/รับเข้า/ปิดร้าน ระบบจะลบ row จริงให้ทันที';
+  $('delConfirm').textContent = 'ปิดใช้งาน / ลบ';
+  $('delModal').classList.add('show');
+}
+function closeDeleteModal(){ $('delModal').classList.remove('show'); }
+
+$('delClose').addEventListener('click', closeDeleteModal);
+$('delCancel').addEventListener('click', closeDeleteModal);
+$('delModal').addEventListener('click', function(e){ if(e.target===$('delModal')) closeDeleteModal(); });
+
+$('delConfirm').addEventListener('click', function(){
+  const btn = $('delConfirm');
+  btn.disabled = true; btn.textContent = 'กำลังลบ...';
+  api('deleteStockItem', { id: pendingDelete.id, hard: true })
+    .then(function(res){
+      btn.disabled = false; btn.textContent = 'ปิดใช้งาน / ลบ';
+      closeDeleteModal();
+      toast(res.msg);
+      loadStockManage();
+    })
+    .catch(function(err){
+      btn.disabled = false; btn.textContent = 'ปิดใช้งาน / ลบ';
+      toast('ผิดพลาด: '+err.message);
+    });
 });
 
 renderIcons();
