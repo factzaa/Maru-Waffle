@@ -17,6 +17,78 @@ function toast(msg){
   setTimeout(function(){t.classList.remove('show');},2400);
 }
 
+// ============================================================
+// SWR cache (localStorage) — stale-while-revalidate
+// เปิดหน้าซ้ำ → วาดจาก cache ทันที แล้วดึงสดมาอัปเดตเบื้องหลัง
+// ============================================================
+const SWR_PREFIX = 'maru_swr:';
+const SWR_TTL = 5 * 60 * 1000;   // 5 นาที — เก่ากว่านี้ไม่ใช้ cache (กันค้างนาน)
+
+// read action ที่ cache ได้
+const SWR_CACHEABLE = {
+  getStockBalances:1, getStockItems:1, getHomeDashboard:1, getStockDashboard:1,
+  getActivityFeed:1, getDashboardData:1, getExpensesReport:1,
+  getAttendReport:1, getAttendStaff:1, getAttendBranches:1
+};
+
+// write action → กลุ่ม read ที่ต้องล้าง cache เมื่อบันทึกสำเร็จ
+const WRITE_INVALIDATES = {
+  addStockWithdraw:  ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard','getActivityFeed'],
+  addStockReceive:   ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard','getActivityFeed'],
+  closeDailyStock:   ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard','getActivityFeed'],
+  addStockAudit:     ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard','getActivityFeed'],
+  saveStockItem:     ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard'],
+  addStockItem:      ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard'],
+  deleteStockItem:   ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard'],
+  saveDailyReport:   ['getDashboardData','getHomeDashboard','getActivityFeed'],
+  addBusinessExpense:['getExpensesReport','getHomeDashboard','getActivityFeed'],
+  addAttendLog:      ['getAttendReport','getHomeDashboard','getActivityFeed'],
+  saveAttendStaff:   ['getAttendStaff','getHomeDashboard'],
+  saveAttendBranch:  ['getAttendBranches']
+};
+
+function swrKey(action, params){ return SWR_PREFIX + action + ':' + JSON.stringify(params || {}); }
+function swrRead(key){
+  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function swrWrite(key, value){
+  try{ localStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value })); }
+  catch(e){ try{ swrClear(); localStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value })); }catch(e2){} }
+}
+function swrClear(actionPrefix){
+  try{
+    const rm = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.indexOf(SWR_PREFIX)===0 && (!actionPrefix || k.indexOf(SWR_PREFIX+actionPrefix)===0)) rm.push(k);
+    }
+    rm.forEach(function(k){ localStorage.removeItem(k); });
+  }catch(e){}
+}
+function invalidateCache(actions){ (actions||[]).forEach(function(a){ swrClear(a); }); }
+
+// SWR call — onData(data, meta) อาจถูกเรียกได้ถึง 2 ครั้ง: cache ก่อน แล้ว fresh
+// คืน Promise(fresh). ถ้า network ล้มแต่มี cache → ใช้ cache ต่อ (ไม่ throw)
+function apiSWR(action, params, onData){
+  const key = swrKey(action, params);
+  const cached = swrRead(key);
+  let served = false;
+  if(cached && (Date.now() - cached.t) < SWR_TTL){
+    served = true;
+    try{ onData(cached.v, { fromCache:true, age: Date.now()-cached.t }); }catch(e){}
+  }
+  return api(action, params).then(function(fresh){
+    swrWrite(key, fresh);
+    try{ onData(fresh, { fromCache:false }); }catch(e){}
+    return fresh;
+  }).catch(function(err){
+    if(served) return cached.v;   // มี cache อยู่แล้ว — เงียบ ใช้ต่อ
+    throw err;                     // ไม่มี cache — ให้ caller จัดการ
+  });
+}
+
+
 async function api(action, params){
   try{
     const res = await fetch(APPS_SCRIPT_URL, {
@@ -27,6 +99,7 @@ async function api(action, params){
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
     if(data.error) throw new Error(data.error);
+    if(WRITE_INVALIDATES[action]) invalidateCache(WRITE_INVALIDATES[action]);
     return data;
   }catch(err){ throw err; }
 }
