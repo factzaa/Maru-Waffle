@@ -138,13 +138,13 @@ function fmtBaht(n){
   return '฿'+Math.round(num).toLocaleString('en-US');
 }
 
-async function loadHome(){
-  try{
-    home = await api('getHomeDashboard', {});
+function loadHome(){
+  apiSWR('getHomeDashboard', {}, function(data){
+    home = data;
     render();
-  }catch(err){
+  }).catch(function(err){
     $('content').innerHTML = '<div class="loading" style="color:var(--red);">โหลดไม่ได้: '+escHtml(err.message)+'<br><br><small>ตรวจสอบว่ารัน setupStock + setupAttend ครบใน Apps Script แล้ว</small></div>';
-  }
+  });
 }
 
 function render(){
