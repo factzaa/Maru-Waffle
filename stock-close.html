@@ -37,6 +37,7 @@
 .close-row .meta b.m-recv{color:var(--green);}
 .close-row .meta b.m-used{color:#CA8A04;}
 .close-row .calc .auto-tag{color:var(--ink-2);font-size:10px;}
+.close-row .calc .wait-tag{color:#92400E;font-weight:700;font-size:11.5px;}
 .close-row .fields input.closing.is-auto{color:#92400E;background:#FFFBEB;border-style:dashed;}
 
 .close-info{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#78350F;line-height:1.6;}
@@ -128,21 +129,26 @@ function updateRow(id){
   const open = it.prevClose||0, recv = it.dayReceive||0, used = it.dayWithdraw||0;
   const waste = parseFloat(cl.wastes[id])||0;
   const autoClosing = Math.round((open + recv - used - waste)*100)/100;
-  const isAuto = (cl.closings[id] === undefined);
-  const closingNum = isAuto ? autoClosing : (parseFloat(cl.closings[id])||0);
+  const isCount = it.mode === 'count';
+  const touched = (cl.closings[id] !== undefined);
+  const isAuto = !touched && !isCount;
   const inp = row.querySelector('input[data-f="closing"]');
   if(inp){
     inp.classList.toggle('is-auto', isAuto);
-    if(isAuto && document.activeElement !== inp) inp.value = autoClosing; // เติมค่าอัตโนมัติ (ไม่ทับขณะพิมพ์)
+    if(isAuto && document.activeElement !== inp) inp.value = autoClosing; // เติมอัตโนมัติเฉพาะโหมดเบิก
   }
+  const calcEl = row.querySelector('.calc');
+  if(!calcEl) return;
+  if(!touched && isCount){
+    calcEl.innerHTML = '<span class="wait-tag">🔸 รอชั่งคงเหลือ</span>';
+    return;
+  }
+  const closingNum = touched ? (parseFloat(cl.closings[id])||0) : autoClosing;
   const actUse = open + recv - closingNum - waste;
   const diff = actUse - used;
-  const calcEl = row.querySelector('.calc');
-  if(calcEl){
-    calcEl.innerHTML = 'ใช้จริง <b class="use">'+actUse.toFixed(2)+'</b> · คงเหลือ <b class="left">'+closingNum.toFixed(2)+'</b>'
-      + (Math.abs(diff)>0.01 ? ' · ส่วนต่าง <b class="diff">'+(diff>0?'+':'')+diff.toFixed(2)+'</b>' : '')
-      + (isAuto ? ' <span class="auto-tag">(อัตโนมัติ)</span>' : '');
-  }
+  calcEl.innerHTML = 'ใช้จริง <b class="use">'+actUse.toFixed(2)+'</b> · คงเหลือ <b class="left">'+closingNum.toFixed(2)+'</b>'
+    + (Math.abs(diff)>0.01 ? ' · ส่วนต่าง <b class="diff">'+(diff>0?'+':'')+diff.toFixed(2)+'</b>' : '')
+    + (isAuto ? ' <span class="auto-tag">(อัตโนมัติ)</span>' : '');
 }
 
 function render(){
@@ -162,15 +168,23 @@ function render(){
     const recv = it.dayReceive || 0;
     const used = it.dayWithdraw || 0;
     const waste = parseFloat(cl.wastes[it.id])||0;
-    const autoClosing = Math.round((open + recv - used - waste)*100)/100;  // คงเหลือคำนวณอัตโนมัติ
-    const isAuto = (cl.closings[it.id] === undefined);                      // ยังไม่แตะ = ใช้ค่าอัตโนมัติ
-    const cVal = isAuto ? autoClosing : cl.closings[it.id];
-    const closingNum = parseFloat(cVal)||0;
-    const actUse = open + recv - closingNum - waste;
-    const diff = actUse - used;
-    const calcLine = 'ใช้จริง <b class="use">'+actUse.toFixed(2)+'</b> · คงเหลือ <b class="left">'+closingNum.toFixed(2)+'</b>'
-      + (Math.abs(diff)>0.01 ? ' · ส่วนต่าง <b class="diff">'+(diff>0?'+':'')+diff.toFixed(2)+'</b>' : '')
-      + (isAuto ? ' <span class="auto-tag">(อัตโนมัติ)</span>' : '');
+    const autoClosing = Math.round((open + recv - used - waste)*100)/100;  // คงเหลือคำนวณ
+    const isCount = it.mode === 'count';
+    const touched = (cl.closings[it.id] !== undefined);
+    // โหมดเบิก → เติมอัตโนมัติ / โหมดชั่ง → ปล่อยว่างให้พนักงานชั่งเอง
+    const isAuto = !touched && !isCount;
+    const cVal = touched ? cl.closings[it.id] : (isCount ? '' : autoClosing);
+    let calcLine;
+    if (!touched && isCount) {
+      calcLine = '<span class="wait-tag">🔸 รอชั่งคงเหลือ</span>';
+    } else {
+      const closingNum = parseFloat(cVal)||0;
+      const actUse = open + recv - closingNum - waste;
+      const diff = actUse - used;
+      calcLine = 'ใช้จริง <b class="use">'+actUse.toFixed(2)+'</b> · คงเหลือ <b class="left">'+closingNum.toFixed(2)+'</b>'
+        + (Math.abs(diff)>0.01 ? ' · ส่วนต่าง <b class="diff">'+(diff>0?'+':'')+diff.toFixed(2)+'</b>' : '')
+        + (isAuto ? ' <span class="auto-tag">(อัตโนมัติ)</span>' : '');
+    }
     const cls = it.mode==='count' ? 'count-mode' : '';
     const modePill = it.mode==='count'
       ? '<span class="mp count">ชั่ง</span>'
