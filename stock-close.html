@@ -111,8 +111,7 @@ const cl = { balances: [], filter: { cat: 'all', q: '' }, wastes: {}, closings: 
 function load(){
   const box = document.getElementById('clList');
   box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
-  api('getStockBalances', {})
-    .then(function(res){
+  apiSWR('getStockBalances', {}, function(res){
       cl.balances = (res.items||[]).filter(function(x){return x.active!==false;});
       render();
     })
