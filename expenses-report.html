@@ -287,14 +287,13 @@
     document.getElementById('results').innerHTML = '<div class="loading">กำลังโหลด...</div>';
     document.getElementById('summary').innerHTML = '';
     document.getElementById('mgrKpi').innerHTML = '';
-    try{
-      const res = await api('getExpensesReport', { start:start, end:end, type:type });
+    apiSWR('getExpensesReport', { start:start, end:end, type:type }, function(res){
       renderManagerKPI(res.sales || {}, res.summary || {});
       renderSummary(res.summary, type);
       renderItems(res.items || []);
-    }catch(err){
+    }).catch(function(err){
       document.getElementById('results').innerHTML = '<div class="empty"><div class="ic">⚠️</div>โหลดไม่ได้: '+err.message+'</div>';
-    }
+    });
   }
 
   function renderManagerKPI(sales, summary){
