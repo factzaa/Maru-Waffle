@@ -94,8 +94,7 @@ const rc = { items: [], qty: {}, filter: { cat:'all', q:'' }, receipt: null };
 function load(){
   const box = document.getElementById('rcList');
   box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
-  api('getStockItems', {})
-    .then(function(res){
+  apiSWR('getStockItems', {}, function(res){
       rc.items = (res.items||[]).filter(function(x){return x.active!==false;});
       render();
     })
