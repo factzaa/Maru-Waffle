@@ -89,8 +89,7 @@ const wd = { items: [], qty: {}, filter: { cat:'all', q:'' } };
 function load(){
   const box = document.getElementById('wdList');
   box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
-  api('getStockItems', {})
-    .then(function(res){
+  apiSWR('getStockItems', {}, function(res){
       wd.items = (res.items||[]).filter(function(x){return x.active!==false;});
       render();
     })
