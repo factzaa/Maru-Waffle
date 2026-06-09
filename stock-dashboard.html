@@ -177,15 +177,14 @@ $('dEnd').addEventListener('change', function(){
   loadDashboard();
 });
 
-async function loadDashboard(){
+function loadDashboard(){
   $('content').innerHTML = '<div class="loading">กำลังโหลด...</div>';
-  try{
-    const r = await api('getStockDashboard', { start: $('dStart').value, end: $('dEnd').value });
+  apiSWR('getStockDashboard', { start: $('dStart').value, end: $('dEnd').value }, function(r){
     dashData = r;
     render();
-  }catch(err){
+  }).catch(function(err){
     $('content').innerHTML = '<div class="loading" style="color:var(--red);">โหลดไม่ได้: '+escHtml(err.message)+'</div>';
-  }
+  });
 }
 
 function render(){
