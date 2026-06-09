@@ -173,16 +173,15 @@ document.querySelectorAll('.tab2').forEach(function(b){
 });
 
 // ===== Staff =====
-async function loadStaff(){
+function loadStaff(){
   const box = document.getElementById('staffList');
   box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
-  try{
-    const r = await api('getAttendStaff', { includeInactive: true });
+  apiSWR('getAttendStaff', { includeInactive: true }, function(r){
     staffList = r.staff || [];
     renderStaff();
-  }catch(err){
+  }).catch(function(err){
     box.innerHTML = '<div style="color:var(--red);padding:14px;font-size:13px;">โหลดไม่ได้: '+escHtml(err.message)+'<br><br>ถ้ายังไม่ได้รัน <code>setupAttend</code> ใน Apps Script editor → รันก่อน</div>';
-  }
+  });
 }
 function renderStaff(){
   const box = document.getElementById('staffList');
@@ -260,16 +259,15 @@ document.getElementById('sfSave').addEventListener('click', async function(){
 });
 
 // ===== Branch =====
-async function loadBranches(){
+function loadBranches(){
   const box = document.getElementById('branchList');
   box.innerHTML = '<div style="text-align:center;color:var(--ink-2);padding:20px;font-size:13px;">กำลังโหลด...</div>';
-  try{
-    const r = await api('getAttendBranches', {});
+  apiSWR('getAttendBranches', {}, function(r){
     branches = r.branches || [];
     renderBranches();
-  }catch(err){
+  }).catch(function(err){
     box.innerHTML = '<div style="color:var(--red);padding:14px;font-size:13px;">โหลดไม่ได้: '+escHtml(err.message)+'</div>';
-  }
+  });
 }
 function renderBranches(){
   const box = document.getElementById('branchList');
