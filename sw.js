@@ -1,6 +1,6 @@
 // Maru Waffle Service Worker
 // version: bump เลขเมื่ออัปเดต index.html เพื่อให้ client โหลดเวอร์ชันใหม่
-const CACHE_VERSION = 'maru-waffle-v15';
+const CACHE_VERSION = 'maru-waffle-v18';
 const CACHE_FILES = ['./', './index.html', './records.html', './expenses-report.html',
                      './activities.html',
                      './stock-dashboard.html',
@@ -14,8 +14,10 @@ const CACHE_FILES = ['./', './index.html', './records.html', './expenses-report.
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(CACHE_FILES))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_VERSION).then((cache) =>
+      // เพิ่มทีละไฟล์ ถ้าไฟล์ไหนหาย (404) ก็ข้าม ไม่ทำให้ติดตั้งล้มทั้งก้อน
+      Promise.all(CACHE_FILES.map((f) => cache.add(f).catch(() => null)))
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -35,8 +37,13 @@ self.addEventListener('fetch', (event) => {
     return;  // ปล่อยให้ผ่าน network ปกติ
   }
 
-  // Network-first สำหรับ index.html (เพื่อให้ได้เวอร์ชันใหม่ทุกครั้ง ถ้า online)
-  if (event.request.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')) {
+  // Network-first สำหรับ HTML / JS / CSS — ได้เวอร์ชันล่าสุดเสมอเมื่อ online
+  // กันปัญหา HTML ใหม่ + shared.js เก่าค้าง cache ไม่ตรงกัน (apiSWR undefined → หน้าค้าง)
+  const path = url.pathname;
+  const isCode = event.request.mode === 'navigate'
+    || path.endsWith('/') || path.endsWith('.html')
+    || path.endsWith('.js') || path.endsWith('.css');
+  if (isCode) {
     event.respondWith(
       fetch(event.request).then((res) => {
         const copy = res.clone();
@@ -47,7 +54,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first สำหรับไฟล์อื่น (ไอคอน, manifest, font)
+  // Cache-first เฉพาะไฟล์นิ่ง (ไอคอน, manifest, font)
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
