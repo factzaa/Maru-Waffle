@@ -81,7 +81,7 @@
       </div>
 
       <div style="margin-bottom:12px;">
-        <button id="btnSuggestMin" style="width:100%;padding:11px;border:1.5px dashed #7C3AED;background:#F5F3FF;color:#7C3AED;border-radius:12px;font-family:'Kanit';font-weight:700;font-size:13px;cursor:pointer;line-height:1.35;">💡 แนะนำสต๊อกขั้นต่ำให้ทุกรายการ<br><span style="font-weight:500;font-size:11px;opacity:.8;">(เฉลี่ยใช้ 7 วัน × สำรอง 5 วัน · แก้ได้ก่อนบันทึก)</span></button>
+        <button id="btnSuggestMin" style="width:100%;padding:11px;border:1.5px dashed #7C3AED;background:#F5F3FF;color:#7C3AED;border-radius:12px;font-family:'Kanit';font-weight:700;font-size:13px;cursor:pointer;line-height:1.35;">💡 แนะนำสต๊อกขั้นต่ำให้ทุกรายการ<br><span style="font-weight:500;font-size:11px;opacity:.8;">(เฉลี่ยใช้ 7 วัน × สำรอง 3 วัน · แก้ได้ก่อนบันทึก)</span></button>
       </div>
 
       <div class="stock-filters" id="mgrCatChips" style="background:transparent;padding:0;">
@@ -435,7 +435,7 @@ $('delConfirm').addEventListener('click', function(){
 $('btnSuggestMin').addEventListener('click', function(){
   const btn = this, old = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '⏳ กำลังวิเคราะห์การใช้...';
-  api('suggestMinStock', { lookbackDays: 7, bufferDays: 5 })
+  api('suggestMinStock', { lookbackDays: 7, bufferDays: 3 })
     .then(function(res){
       btn.disabled = false; btn.innerHTML = old;
       const sug = res.suggestions || {};
