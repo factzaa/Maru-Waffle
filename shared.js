@@ -41,7 +41,7 @@ const WRITE_INVALIDATES = {
   addStockItem:      ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard'],
   deleteStockItem:   ['getStockBalances','getStockItems','getStockDashboard','getHomeDashboard'],
   saveMinStockBatch: ['getStockItems','getStockBalances','getStockDashboard','getHomeDashboard'],
-  saveDailyReport:   ['getDashboardData','getHomeDashboard','getActivityFeed'],
+  saveDailyReport:   ['getDashboardData','getHomeDashboard','getActivityFeed','getExpensesReport'],
   addBusinessExpense:['getExpensesReport','getHomeDashboard','getActivityFeed'],
   addAttendLog:      ['getAttendReport','getHomeDashboard','getActivityFeed'],
   saveAttendStaff:   ['getAttendStaff','getHomeDashboard'],
@@ -81,11 +81,12 @@ function apiSWR(action, params, onData){
   }
   return api(action, params).then(function(fresh){
     swrWrite(key, fresh);
-    try{ onData(fresh, { fromCache:false }); }catch(e){}
+    try{ onData(fresh, { fromCache:false }); }
+    catch(e){ console.error('apiSWR onData error ['+action+']', e); if(!served) throw e; }
     return fresh;
   }).catch(function(err){
     if(served) return cached.v;   // มี cache อยู่แล้ว — เงียบ ใช้ต่อ
-    throw err;                     // ไม่มี cache — ให้ caller จัดการ
+    throw err;                     // ไม่มี cache — ให้ caller จัดการ (โชว์ error)
   });
 }
 
