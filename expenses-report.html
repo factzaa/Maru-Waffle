@@ -407,11 +407,12 @@
 
   function renderSummary(s, type){
     if(!s) return;
+    const bt = s.byType || {};
     let html = '';
-    html += '<div class="kpi red"><div class="l">รวมค่าใช้จ่าย</div><div class="v">'+baht(s.total)+'</div><div class="sub">'+s.count+' รายการ</div></div>';
+    html += '<div class="kpi red"><div class="l">รวมค่าใช้จ่าย</div><div class="v">'+baht(s.total)+'</div><div class="sub">'+(s.count||0)+' รายการ</div></div>';
     if(type === 'all'){
-      html += '<div class="kpi"><div class="l">จากรอบขาย (POS)</div><div class="v">'+baht(s.byType.pos)+'</div></div>';
-      html += '<div class="kpi"><div class="l">สั่งของ/วัตถุดิบ</div><div class="v">'+baht(s.byType.biz)+'</div></div>';
+      html += '<div class="kpi"><div class="l">จากรอบขาย (POS)</div><div class="v">'+baht(bt.pos)+'</div></div>';
+      html += '<div class="kpi"><div class="l">สั่งของ/วัตถุดิบ</div><div class="v">'+baht(bt.biz)+'</div></div>';
     }
     const avg = s.count ? Math.round(s.total/s.count) : 0;
     html += '<div class="kpi"><div class="l">เฉลี่ย/รายการ</div><div class="v">'+baht(avg)+'</div></div>';
