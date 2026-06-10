@@ -1,11 +1,11 @@
 // Maru Waffle Service Worker
 // version: bump เลขเมื่ออัปเดต index.html เพื่อให้ client โหลดเวอร์ชันใหม่
-const CACHE_VERSION = 'maru-waffle-v19';
+const CACHE_VERSION = 'maru-waffle-v21';
 const CACHE_FILES = ['./', './index.html', './records.html', './expenses-report.html',
                      './activities.html',
                      './stock-dashboard.html',
                      './stock-view.html', './stock-withdraw.html', './stock-receive.html',
-                     './stock-close.html', './stock-audit.html', './stock-manage.html',
+                     './stock-close.html', './stock-audit.html', './stock-audit-report.html', './stock-manage.html',
                      './attend.html', './attend-report.html', './attend-setup.html',
                      './manual.html',
                      './shared.css', './shared.js',
