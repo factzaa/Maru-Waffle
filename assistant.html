@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ผู้ช่วยมารุ · Maru Waffle</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFC629">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="shared.css">
+<style>
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 0px);}
+.msgs{flex:1;overflow-y:auto;padding:14px 4px 8px;display:flex;flex-direction:column;gap:10px;}
+.msg{max-width:82%;padding:10px 13px;border-radius:15px;font-size:14px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;}
+.msg.me{align-self:flex-end;background:#FFC629;color:#1A1A1A;border-bottom-right-radius:5px;}
+.msg.ai{align-self:flex-start;background:#fff;color:var(--ink);border:1px solid var(--line);border-bottom-left-radius:5px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.msg.err{align-self:center;background:#FEF2F2;color:#B91C1C;font-size:12.5px;border-radius:11px;max-width:90%;text-align:center;}
+.hello{text-align:center;color:var(--ink-2);padding:24px 18px;}
+.hello .em{font-size:46px;margin-bottom:8px;}
+.hello .t{font-family:'Kanit';font-weight:700;font-size:16px;color:var(--ink);}
+.hello .s{font-size:12.5px;margin-top:5px;line-height:1.5;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:14px;}
+.chip{background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:7px 12px;font-size:12.5px;color:var(--ink);cursor:pointer;font-family:'Sarabun';}
+.chip:active{background:#FFF7E0;}
+.typing{align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:15px;border-bottom-left-radius:5px;padding:12px 15px;display:flex;gap:4px;}
+.typing span{width:7px;height:7px;border-radius:50%;background:#C9C1AE;animation:bz 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
+@keyframes bz{0%,60%,100%{opacity:.3;transform:translateY(0);}30%{opacity:1;transform:translateY(-4px);}}
+.inbar{display:flex;gap:8px;padding:10px 4px calc(10px + env(safe-area-inset-bottom));align-items:flex-end;border-top:1px solid var(--line);background:var(--bg);}
+.inbar textarea{flex:1;resize:none;border:1.5px solid var(--line);border-radius:14px;padding:11px 14px;font-family:'Sarabun';font-size:14px;max-height:120px;line-height:1.4;background:#fff;color:var(--ink);}
+.inbar textarea:focus{outline:none;border-color:#FFC629;}
+.sendb{width:46px;height:46px;border-radius:50%;border:0;background:#1A1A1A;color:#FFC629;font-size:19px;cursor:pointer;flex-shrink:0;}
+.sendb:disabled{opacity:.4;}
+.note{font-size:11px;color:var(--ink-2);text-align:center;padding:2px 10px 6px;}
+</style>
+</head>
+<body>
+<div class="app" style="padding-bottom:0;">
+  <div class="head">
+    <img class="logo" src="icon-192.png" alt="">
+    <h1>ผู้ช่วยมารุ</h1>
+    <div class="sub">Maru Waffle · ถาม-คุยได้ทุกเรื่อง</div>
+  </div>
+  <div class="sheet" style="padding-bottom:0;">
+    <div class="chat-wrap">
+      <div class="msgs" id="msgs">
+        <div class="hello" id="hello">
+          <div class="em">🐤</div>
+          <div class="t">สวัสดีครับ ผมผู้ช่วยมารุ</div>
+          <div class="s">คุยเล่น ปรึกษา หรือถามอะไรก็ได้เลย<br>เหนื่อยๆ มาคุยเป็นเพื่อนกันได้นะ 😊</div>
+          <div class="chips" id="chips">
+            <div class="chip">วันนี้เหนื่อยจัง</div>
+            <div class="chip">เล่ามุกหน่อย</div>
+            <div class="chip">กินอะไรดีตอนเย็น</div>
+            <div class="chip">ให้กำลังใจหน่อย</div>
+          </div>
+        </div>
+      </div>
+      <div class="inbar">
+        <textarea id="inp" rows="1" placeholder="พิมพ์ข้อความ..."></textarea>
+        <button class="sendb" id="send">➤</button>
+      </div>
+      <div class="note">🔒 ยังไม่เชื่อมข้อมูลยอดขาย/การเงิน · บทสนทนาไม่ถูกบันทึกถาวร</div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+injectShell('assistant');
+registerSW();
+const $ = function(id){return document.getElementById(id);};
+const msgsEl = $('msgs'), inp = $('inp'), sendBtn = $('send');
+let history = [];   // {role:'user'|'model', text}
+let busy = false;
+
+// textarea auto-grow
+inp.addEventListener('input', function(){ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,120)+'px'; });
+inp.addEventListener('keydown', function(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); doSend(); }
+});
+sendBtn.addEventListener('click', doSend);
+$('chips').querySelectorAll('.chip').forEach(function(c){
+  c.addEventListener('click', function(){ inp.value=c.textContent; doSend(); });
+});
+
+function addMsg(text, cls){
+  const h=$('hello'); if(h) h.remove();
+  const d=document.createElement('div');
+  d.className='msg '+cls; d.textContent=text;
+  msgsEl.appendChild(d);
+  msgsEl.scrollTop=msgsEl.scrollHeight;
+  return d;
+}
+function showTyping(){
+  const t=document.createElement('div'); t.className='typing'; t.id='typing';
+  t.innerHTML='<span></span><span></span><span></span>';
+  msgsEl.appendChild(t); msgsEl.scrollTop=msgsEl.scrollHeight;
+}
+function hideTyping(){ const t=$('typing'); if(t) t.remove(); }
+
+async function doSend(){
+  const text=inp.value.trim();
+  if(!text || busy) return;
+  busy=true; sendBtn.disabled=true;
+  addMsg(text,'me');
+  inp.value=''; inp.style.height='auto';
+  showTyping();
+  try{
+    const r=await api('askAI', { message:text, history:history });
+    hideTyping();
+    if(r.ok){
+      addMsg(r.reply,'ai');
+      history.push({role:'user',text:text});
+      history.push({role:'model',text:r.reply});
+      if(history.length>24) history=history.slice(-24);
+    }else{
+      addMsg(r.error||'ขอโทษครับ ตอบไม่ได้ตอนนี้','err');
+    }
+  }catch(err){
+    hideTyping();
+    addMsg('เชื่อมต่อไม่ได้ ลองใหม่อีกครั้งนะครับ','err');
+  }
+  busy=false; sendBtn.disabled=false; inp.focus();
+}
+</script>
+</body>
+</html>
