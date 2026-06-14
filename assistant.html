@@ -104,17 +104,25 @@ function showTyping(){
 }
 function hideTyping(){ const t=$('typing'); if(t) t.remove(); }
 
-async function doSend(){
-  const text=inp.value.trim();
+async function doSend(forceText){
+  const text=(typeof forceText==='string')?forceText:inp.value.trim();
   if(!text || busy) return;
   busy=true; sendBtn.disabled=true;
-  addMsg(text,'me');
-  inp.value=''; inp.style.height='auto';
+  if(typeof forceText!=='string'){ addMsg(text,'me'); inp.value=''; inp.style.height='auto'; }
   showTyping();
   try{
-    const r=await api('askAI', { message:text, history:history });
+    let owner=''; try{ owner=sessionStorage.getItem('maruOwner')||''; }catch(e){}
+    const r=await api('askAI', { message:text, history:history, ownerCode:owner });
     hideTyping();
-    if(r.ok){
+    if(r.ok && r.needOwner){
+      addMsg(r.reply,'ai');
+      const code=prompt('🔒 ใส่รหัสเจ้าของ เพื่อดูข้อมูลค่าจ้าง/เงินเดือน');
+      if(code){
+        try{ sessionStorage.setItem('maruOwner', code); }catch(e){}
+        busy=false; sendBtn.disabled=false;
+        return doSend(text);
+      }
+    }else if(r.ok){
       addMsg(r.reply,'ai');
       history.push({role:'user',text:text});
       history.push({role:'model',text:r.reply});
