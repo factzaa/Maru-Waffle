@@ -282,20 +282,23 @@ function maruAssistantMarkup(currentPage){
    + '.maru-in{display:flex;gap:7px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));align-items:flex-end;border-top:1px solid #ECE6D6;background:#FAF8F1;}'
    + '.maru-in textarea{flex:1;resize:none;border:1.5px solid #ECE6D6;border-radius:13px;padding:10px 13px;font-family:"Sarabun";font-size:14px;max-height:110px;line-height:1.4;background:#fff;color:#1A1A1A;}'
    + '.maru-in textarea:focus{outline:none;border-color:#FFC629;}'
-   + '.maru-mic{width:42px;height:42px;border-radius:50%;border:1.5px solid #ECE6D6;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0;}'
-   + '.maru-mic.rec{background:#FEE2E2;border-color:#FCA5A5;animation:marupulse 1s infinite;}'
-   + '@keyframes marupulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}'
+   + '.maru-mic{width:42px;height:42px;border-radius:50%;border:1.5px solid #ECE6D6;background:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}'
+   + '.maru-wave{display:inline-flex;align-items:center;gap:2.5px;height:18px;}'
+   + '.maru-wave i{width:3px;height:7px;background:#1A1A1A;border-radius:2px;animation:maruwv 1.1s infinite ease-in-out;}'
+   + '.maru-wave i:nth-child(2){animation-delay:.15s;}.maru-wave i:nth-child(3){animation-delay:.3s;}.maru-wave i:nth-child(4){animation-delay:.45s;}'
+   + '@keyframes maruwv{0%,100%{height:6px;}50%{height:16px;}}'
+   + '.maru-mic.rec{background:#FEE2E2;border-color:#FCA5A5;}'
+   + '.maru-mic.rec .maru-wave i{background:#DC2626;}'
    + '.maru-send{width:42px;height:42px;border-radius:50%;border:0;background:#1A1A1A;color:#FFC629;font-size:17px;cursor:pointer;flex-shrink:0;}'
    + '.maru-send:disabled{opacity:.4;}'
    + '</style>'
    + '<button class="maru-fab" id="maruFab" aria-label="ผู้ช่วยมารุ">🐤</button>'
    + '<div class="maru-ov" id="maruOv"><div class="maru-panel">'
    +   '<div class="maru-head"><div class="maru-title">🐤 ผู้ช่วยมารุ</div>'
-   +     '<button class="maru-spk" id="maruSpk" title="อ่านออกเสียง">🔈</button>'
    +     '<button class="maru-x" id="maruX">✕</button></div>'
    +   '<div class="maru-msgs" id="maruMsgs"><div class="maru-hi">สวัสดีครับ 🐤 ถามหรือคุยเล่นได้เลย<br>กดไมค์ 🎤 พูดก็ได้นะ</div></div>'
    +   '<div class="maru-in">'
-   +     '<button class="maru-mic" id="maruMic" title="พูด">🎤</button>'
+   +     '<button class="maru-mic" id="maruMic" title="พูด"><span class="maru-wave"><i></i><i></i><i></i><i></i></span></button>'
    +     '<textarea id="maruInp" rows="1" placeholder="พิมพ์ หรือกดไมค์พูด..."></textarea>'
    +     '<button class="maru-send" id="maruSend">➤</button>'
    +   '</div>'
@@ -306,17 +309,15 @@ var maruHistory = [];
 var maruBusy = false;
 var maruRec = null;
 
-function maruSpeak(text){
+var maruAudio = null;
+async function maruPlay(text){
   try{
-    if(localStorage.getItem('maruSpeak') !== '1') return;
-    if(!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'th-TH'; u.rate = 1.0; u.pitch = 1.05;
-    var vs = speechSynthesis.getVoices();
-    var th = vs.filter(function(v){ return /th/i.test(v.lang); })[0];
-    if(th) u.voice = th;
-    speechSynthesis.speak(u);
+    var r = await api('ttsSpeak', { text: text });
+    if(r && r.ok && r.audio){
+      if(maruAudio){ try{ maruAudio.pause(); }catch(e){} }
+      maruAudio = new Audio(r.audio);
+      maruAudio.play().catch(function(){});
+    }
   }catch(e){}
 }
 
@@ -328,29 +329,15 @@ function bindMaruAssistant(currentPage){
   var inp = document.getElementById('maruInp');
   var sendB = document.getElementById('maruSend');
   var micB = document.getElementById('maruMic');
-  var spkB = document.getElementById('maruSpk');
   if(!fab || !ov) return;
 
-  // สถานะเสียงพูด (จำไว้)
-  if(localStorage.getItem('maruSpeak') === '1') spkB.classList.add('on');
-  // โหลดรายชื่อเสียงล่วงหน้า
-  if('speechSynthesis' in window){ try{ speechSynthesis.getVoices(); }catch(e){} }
-
   fab.addEventListener('click', function(){ ov.classList.add('show'); setTimeout(function(){ inp.focus(); }, 100); });
-  document.getElementById('maruX').addEventListener('click', function(){ ov.classList.remove('show'); try{ speechSynthesis.cancel(); }catch(e){} });
-  ov.addEventListener('click', function(e){ if(e.target === ov){ ov.classList.remove('show'); try{ speechSynthesis.cancel(); }catch(e){} } });
-
-  spkB.addEventListener('click', function(){
-    var on = localStorage.getItem('maruSpeak') === '1';
-    localStorage.setItem('maruSpeak', on ? '0' : '1');
-    spkB.classList.toggle('on', !on);
-    if(on){ try{ speechSynthesis.cancel(); }catch(e){} }
-    else toast('มารุจะอ่านคำตอบออกเสียง 🔊');
-  });
+  document.getElementById('maruX').addEventListener('click', function(){ ov.classList.remove('show'); try{ maruAudio && maruAudio.pause(); }catch(e){} });
+  ov.addEventListener('click', function(e){ if(e.target === ov){ ov.classList.remove('show'); try{ maruAudio && maruAudio.pause(); }catch(e){} } });
 
   inp.addEventListener('input', function(){ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
   inp.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); maruSend(); } });
-  sendB.addEventListener('click', maruSend);
+  sendB.addEventListener('click', function(){ maruSend(); });
 
   // ไมโครโฟน (ถ้าอุปกรณ์รองรับ)
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -396,7 +383,7 @@ function bindMaruAssistant(currentPage){
         maruHistory.push({role:'user',text:text});
         maruHistory.push({role:'model',text:r.reply});
         if(maruHistory.length>24) maruHistory = maruHistory.slice(-24);
-        maruSpeak(r.reply);
+        maruPlay(r.reply);
       } else {
         maruAdd(r.error || 'ขอโทษครับ ตอบไม่ได้ตอนนี้','er');
       }
