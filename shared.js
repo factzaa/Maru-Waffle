@@ -258,17 +258,24 @@ function maruAssistantMarkup(currentPage){
   if(currentPage === 'assistant') return ''; // หน้าเต็มมีแชทอยู่แล้ว ไม่ต้องมีปุ่มลอยซ้ำ
   return ''
    + '<style id="maruStyle">'
-   + '.maru-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;'
+   + '.maru-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;'
    + 'border:0;background:#FFC629;color:#1A1A1A;font-size:26px;box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;z-index:900;'
-   + 'display:flex;align-items:center;justify-content:center;transition:transform .15s;}'
+   + 'display:flex;align-items:center;justify-content:center;transition:transform .15s;overflow:hidden;padding:0;}'
+   + '.maru-fab img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}'
    + '.maru-fab:active{transform:scale(.92);}'
    + '.maru-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1600;display:none;align-items:flex-end;justify-content:center;}'
    + '.maru-ov.show{display:flex;}'
    + '.maru-panel{background:#FAF8F1;width:100%;max-width:520px;height:78vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -6px 30px rgba(0,0,0,.25);}'
    + '.maru-head{display:flex;align-items:center;gap:8px;padding:13px 15px;background:#FFC629;}'
    + '.maru-title{flex:1;font-family:"Kanit";font-weight:800;font-size:16px;color:#1A1A1A;}'
-   + '.maru-spk,.maru-x{border:0;background:rgba(0,0,0,.08);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:#1A1A1A;}'
-   + '.maru-spk.on{background:#1A1A1A;color:#FFC629;}'
+   + '.maru-spk,.maru-x,.maru-set{border:0;background:rgba(0,0,0,.08);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:#1A1A1A;}'
+   + '.maru-cfg{display:none;flex-direction:column;gap:9px;padding:12px 15px;background:#FFF7E0;border-bottom:1px solid #ECE6D6;}'
+   + '.maru-cfg.show{display:flex;}'
+   + '.maru-cfg .cfg-row{display:flex;align-items:center;gap:10px;font-size:13px;color:#1A1A1A;font-family:"Sarabun";}'
+   + '.maru-cfg .cfg-row span{width:62px;flex-shrink:0;}'
+   + '.maru-cfg select{flex:1;padding:6px 8px;border:1px solid #ECE6D6;border-radius:8px;font-family:"Sarabun";font-size:13px;background:#fff;}'
+   + '.maru-cfg input[type=range]{flex:1;}'
+   + '.maru-cfg .cfg-mute{display:flex;align-items:center;gap:7px;font-size:13px;font-family:"Sarabun";color:#1A1A1A;}'
    + '.maru-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px;}'
    + '.maru-hi{text-align:center;color:#8A8170;font-size:13px;padding:10px;}'
    + '.maru-b{max-width:84%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;font-family:"Sarabun";}'
@@ -292,10 +299,16 @@ function maruAssistantMarkup(currentPage){
    + '.maru-send{width:42px;height:42px;border-radius:50%;border:0;background:#1A1A1A;color:#FFC629;font-size:17px;cursor:pointer;flex-shrink:0;}'
    + '.maru-send:disabled{opacity:.4;}'
    + '</style>'
-   + '<button class="maru-fab" id="maruFab" aria-label="ผู้ช่วยมารุ">🐤</button>'
+   + '<button class="maru-fab" id="maruFab" aria-label="ผู้ช่วยมารุ"><img src="maru-chick.png" alt="มารุ" onerror="this.replaceWith(document.createTextNode(\'🐤\'))"></button>'
    + '<div class="maru-ov" id="maruOv"><div class="maru-panel">'
    +   '<div class="maru-head"><div class="maru-title">🐤 ผู้ช่วยมารุ</div>'
+   +     '<button class="maru-set" id="maruSet" title="ตั้งค่าเสียง">⚙</button>'
    +     '<button class="maru-x" id="maruX">✕</button></div>'
+   +   '<div class="maru-cfg" id="maruCfg">'
+   +     '<div class="cfg-row"><span>เสียง</span><select id="maruVoiceSel"></select></div>'
+   +     '<div class="cfg-row"><span>ความเร็ว</span><input type="range" id="maruRateSel" min="0.7" max="1.4" step="0.1"></div>'
+   +     '<label class="cfg-mute"><input type="checkbox" id="maruMuteChk"> ปิดเสียงพูด</label>'
+   +   '</div>'
    +   '<div class="maru-msgs" id="maruMsgs"><div class="maru-hi">สวัสดีครับ 🐤 ถามหรือคุยเล่นได้เลย<br>กดไมค์ 🎤 พูดก็ได้นะ</div></div>'
    +   '<div class="maru-in">'
    +     '<button class="maru-mic" id="maruMic" title="พูด"><span class="maru-wave"><i></i><i></i><i></i><i></i></span></button>'
@@ -309,15 +322,32 @@ var maruHistory = [];
 var maruBusy = false;
 var maruRec = null;
 
-var maruAudio = null;
-async function maruPlay(text){
+var maruVoices = [];
+function maruLoadVoices(){
+  try{ maruVoices = (window.speechSynthesis ? speechSynthesis.getVoices() : []) || []; }catch(e){ maruVoices = []; }
+}
+if(window.speechSynthesis){
+  maruLoadVoices();
+  speechSynthesis.onvoiceschanged = maruLoadVoices;
+}
+function maruThaiVoices(){
+  // เสียงไทยก่อน ตามด้วยเสียงอื่นที่พูดไทยได้
+  var th = maruVoices.filter(function(v){ return /th/i.test(v.lang); });
+  return th.length ? th : maruVoices;
+}
+function maruPlay(text){
   try{
-    var r = await api('ttsSpeak', { text: text });
-    if(r && r.ok && r.audio){
-      if(maruAudio){ try{ maruAudio.pause(); }catch(e){} }
-      maruAudio = new Audio(r.audio);
-      maruAudio.play().catch(function(){});
-    }
+    if(!window.speechSynthesis) return;
+    if(localStorage.getItem('maruMute') === '1') return;   // ปิดเสียงไว้
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'th-TH';
+    u.rate = parseFloat(localStorage.getItem('maruRate') || '1') || 1;
+    var want = localStorage.getItem('maruVoice') || '';
+    var list = maruThaiVoices();
+    var pick = want ? list.filter(function(v){ return v.name === want; })[0] : list[0];
+    if(pick) u.voice = pick;
+    speechSynthesis.speak(u);
   }catch(e){}
 }
 
@@ -332,8 +362,41 @@ function bindMaruAssistant(currentPage){
   if(!fab || !ov) return;
 
   fab.addEventListener('click', function(){ ov.classList.add('show'); setTimeout(function(){ inp.focus(); }, 100); });
-  document.getElementById('maruX').addEventListener('click', function(){ ov.classList.remove('show'); try{ maruAudio && maruAudio.pause(); }catch(e){} });
-  ov.addEventListener('click', function(e){ if(e.target === ov){ ov.classList.remove('show'); try{ maruAudio && maruAudio.pause(); }catch(e){} } });
+  document.getElementById('maruX').addEventListener('click', function(){ ov.classList.remove('show'); try{ speechSynthesis.cancel(); }catch(e){} });
+  ov.addEventListener('click', function(e){ if(e.target === ov){ ov.classList.remove('show'); try{ speechSynthesis.cancel(); }catch(e){} } });
+
+  // ===== ตั้งค่าเสียง =====
+  var setBtn = document.getElementById('maruSet');
+  var cfg = document.getElementById('maruCfg');
+  var voiceSel = document.getElementById('maruVoiceSel');
+  var rateSel = document.getElementById('maruRateSel');
+  var muteChk = document.getElementById('maruMuteChk');
+  if(!window.speechSynthesis){ if(setBtn) setBtn.style.display='none'; }
+  function fillVoices(){
+    if(!voiceSel) return;
+    var list = maruThaiVoices();
+    if(!list.length){ voiceSel.innerHTML = '<option value="">(เสียงเริ่มต้นของเครื่อง)</option>'; return; }
+    var saved = localStorage.getItem('maruVoice') || '';
+    voiceSel.innerHTML = list.map(function(v){
+      var sel = (v.name === saved) ? ' selected' : '';
+      return '<option value="'+escHtml(v.name)+'"'+sel+'>'+escHtml(v.name)+' ('+escHtml(v.lang)+')</option>';
+    }).join('');
+  }
+  fillVoices();
+  if(window.speechSynthesis) speechSynthesis.addEventListener('voiceschanged', fillVoices);
+  if(rateSel) rateSel.value = localStorage.getItem('maruRate') || '1';
+  if(muteChk) muteChk.checked = localStorage.getItem('maruMute') === '1';
+
+  if(setBtn) setBtn.addEventListener('click', function(){ cfg.classList.toggle('show'); fillVoices(); });
+  if(voiceSel) voiceSel.addEventListener('change', function(){
+    localStorage.setItem('maruVoice', voiceSel.value);
+    maruPlay('สวัสดีครับ เสียงนี้เป็นยังไงบ้าง');  // ลองฟังเสียงที่เลือก
+  });
+  if(rateSel) rateSel.addEventListener('change', function(){ localStorage.setItem('maruRate', rateSel.value); });
+  if(muteChk) muteChk.addEventListener('change', function(){
+    localStorage.setItem('maruMute', muteChk.checked ? '1' : '0');
+    if(muteChk.checked){ try{ speechSynthesis.cancel(); }catch(e){} }
+  });
 
   inp.addEventListener('input', function(){ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
   inp.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); maruSend(); } });
