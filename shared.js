@@ -432,16 +432,26 @@ function bindMaruAssistant(currentPage){
   function maruDots(){ var d=document.createElement('div'); d.className='maru-dots'; d.id='maruDots'; d.innerHTML='<span></span><span></span><span></span>'; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
   function maruNoDots(){ var d=document.getElementById('maruDots'); if(d) d.remove(); }
 
-  window.maruSend = async function(){
-    var text = inp.value.trim();
+  window.maruSend = async function(forceText){
+    var text = (typeof forceText === 'string') ? forceText : inp.value.trim();
     if(!text || maruBusy) return;
     maruBusy=true; sendB.disabled=true;
-    maruAdd(text,'me'); inp.value=''; inp.style.height='auto';
+    if(typeof forceText !== 'string'){ maruAdd(text,'me'); inp.value=''; inp.style.height='auto'; }
     maruDots();
     try{
-      var r = await api('askAI', { message:text, history:maruHistory });
+      var owner = '';
+      try{ owner = sessionStorage.getItem('maruOwner') || ''; }catch(e){}
+      var r = await api('askAI', { message:text, history:maruHistory, ownerCode:owner });
       maruNoDots();
-      if(r.ok){
+      if(r.ok && r.needOwner){
+        maruAdd(r.reply,'ai');
+        var code = prompt('🔒 ใส่รหัสเจ้าของ เพื่อดูข้อมูลค่าจ้าง/เงินเดือน');
+        if(code){
+          try{ sessionStorage.setItem('maruOwner', code); }catch(e){}
+          maruBusy=false; sendB.disabled=false;
+          return window.maruSend(text);   // ถามซ้ำพร้อมรหัส (ไม่เพิ่มข้อความซ้ำ)
+        }
+      } else if(r.ok){
         maruAdd(r.reply,'ai');
         maruHistory.push({role:'user',text:text});
         maruHistory.push({role:'model',text:r.reply});
