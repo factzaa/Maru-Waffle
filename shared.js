@@ -244,9 +244,165 @@ function injectShell(currentPage){
     + '</div></div>'
     + '<input type="file" accept="image/*" capture="environment" id="rcptInputCam" style="display:none">'
     + '<input type="file" accept="image/*" id="rcptInputAlb" style="display:none">'
+    + maruAssistantMarkup(currentPage)
     + '<div class="toast" id="toast"></div>';
   document.body.insertAdjacentHTML('afterbegin', html);
   renderIcons();
   bindSidebar();
   bindReceiptSheet();
+  bindMaruAssistant(currentPage);
+}
+
+// ===== ผู้ช่วยมารุ: ปุ่มลอย + กล่องแชท + เสียง (Web Speech API ฟรี ไม่กินเครดิต) =====
+function maruAssistantMarkup(currentPage){
+  if(currentPage === 'assistant') return ''; // หน้าเต็มมีแชทอยู่แล้ว ไม่ต้องมีปุ่มลอยซ้ำ
+  return ''
+   + '<style id="maruStyle">'
+   + '.maru-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;'
+   + 'border:0;background:#FFC629;color:#1A1A1A;font-size:26px;box-shadow:0 6px 18px rgba(0,0,0,.22);cursor:pointer;z-index:900;'
+   + 'display:flex;align-items:center;justify-content:center;transition:transform .15s;}'
+   + '.maru-fab:active{transform:scale(.92);}'
+   + '.maru-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1600;display:none;align-items:flex-end;justify-content:center;}'
+   + '.maru-ov.show{display:flex;}'
+   + '.maru-panel{background:#FAF8F1;width:100%;max-width:520px;height:78vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -6px 30px rgba(0,0,0,.25);}'
+   + '.maru-head{display:flex;align-items:center;gap:8px;padding:13px 15px;background:#FFC629;}'
+   + '.maru-title{flex:1;font-family:"Kanit";font-weight:800;font-size:16px;color:#1A1A1A;}'
+   + '.maru-spk,.maru-x{border:0;background:rgba(0,0,0,.08);width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:#1A1A1A;}'
+   + '.maru-spk.on{background:#1A1A1A;color:#FFC629;}'
+   + '.maru-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px;}'
+   + '.maru-hi{text-align:center;color:#8A8170;font-size:13px;padding:10px;}'
+   + '.maru-b{max-width:84%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;font-family:"Sarabun";}'
+   + '.maru-b.me{align-self:flex-end;background:#FFC629;color:#1A1A1A;border-bottom-right-radius:4px;}'
+   + '.maru-b.ai{align-self:flex-start;background:#fff;border:1px solid #ECE6D6;color:#1A1A1A;border-bottom-left-radius:4px;}'
+   + '.maru-b.er{align-self:center;background:#FEF2F2;color:#B91C1C;font-size:12.5px;text-align:center;}'
+   + '.maru-dots{align-self:flex-start;background:#fff;border:1px solid #ECE6D6;border-radius:14px;padding:11px 14px;display:flex;gap:4px;}'
+   + '.maru-dots span{width:7px;height:7px;border-radius:50%;background:#C9C1AE;animation:marubz 1.2s infinite;}'
+   + '.maru-dots span:nth-child(2){animation-delay:.2s;}.maru-dots span:nth-child(3){animation-delay:.4s;}'
+   + '@keyframes marubz{0%,60%,100%{opacity:.3;transform:translateY(0);}30%{opacity:1;transform:translateY(-4px);}}'
+   + '.maru-in{display:flex;gap:7px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));align-items:flex-end;border-top:1px solid #ECE6D6;background:#FAF8F1;}'
+   + '.maru-in textarea{flex:1;resize:none;border:1.5px solid #ECE6D6;border-radius:13px;padding:10px 13px;font-family:"Sarabun";font-size:14px;max-height:110px;line-height:1.4;background:#fff;color:#1A1A1A;}'
+   + '.maru-in textarea:focus{outline:none;border-color:#FFC629;}'
+   + '.maru-mic{width:42px;height:42px;border-radius:50%;border:1.5px solid #ECE6D6;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0;}'
+   + '.maru-mic.rec{background:#FEE2E2;border-color:#FCA5A5;animation:marupulse 1s infinite;}'
+   + '@keyframes marupulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}'
+   + '.maru-send{width:42px;height:42px;border-radius:50%;border:0;background:#1A1A1A;color:#FFC629;font-size:17px;cursor:pointer;flex-shrink:0;}'
+   + '.maru-send:disabled{opacity:.4;}'
+   + '</style>'
+   + '<button class="maru-fab" id="maruFab" aria-label="ผู้ช่วยมารุ">🐤</button>'
+   + '<div class="maru-ov" id="maruOv"><div class="maru-panel">'
+   +   '<div class="maru-head"><div class="maru-title">🐤 ผู้ช่วยมารุ</div>'
+   +     '<button class="maru-spk" id="maruSpk" title="อ่านออกเสียง">🔈</button>'
+   +     '<button class="maru-x" id="maruX">✕</button></div>'
+   +   '<div class="maru-msgs" id="maruMsgs"><div class="maru-hi">สวัสดีครับ 🐤 ถามหรือคุยเล่นได้เลย<br>กดไมค์ 🎤 พูดก็ได้นะ</div></div>'
+   +   '<div class="maru-in">'
+   +     '<button class="maru-mic" id="maruMic" title="พูด">🎤</button>'
+   +     '<textarea id="maruInp" rows="1" placeholder="พิมพ์ หรือกดไมค์พูด..."></textarea>'
+   +     '<button class="maru-send" id="maruSend">➤</button>'
+   +   '</div>'
+   + '</div></div>';
+}
+
+var maruHistory = [];
+var maruBusy = false;
+var maruRec = null;
+
+function maruSpeak(text){
+  try{
+    if(localStorage.getItem('maruSpeak') !== '1') return;
+    if(!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'th-TH'; u.rate = 1.0; u.pitch = 1.05;
+    var vs = speechSynthesis.getVoices();
+    var th = vs.filter(function(v){ return /th/i.test(v.lang); })[0];
+    if(th) u.voice = th;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function bindMaruAssistant(currentPage){
+  if(currentPage === 'assistant') return;
+  var fab = document.getElementById('maruFab');
+  var ov = document.getElementById('maruOv');
+  var msgs = document.getElementById('maruMsgs');
+  var inp = document.getElementById('maruInp');
+  var sendB = document.getElementById('maruSend');
+  var micB = document.getElementById('maruMic');
+  var spkB = document.getElementById('maruSpk');
+  if(!fab || !ov) return;
+
+  // สถานะเสียงพูด (จำไว้)
+  if(localStorage.getItem('maruSpeak') === '1') spkB.classList.add('on');
+  // โหลดรายชื่อเสียงล่วงหน้า
+  if('speechSynthesis' in window){ try{ speechSynthesis.getVoices(); }catch(e){} }
+
+  fab.addEventListener('click', function(){ ov.classList.add('show'); setTimeout(function(){ inp.focus(); }, 100); });
+  document.getElementById('maruX').addEventListener('click', function(){ ov.classList.remove('show'); try{ speechSynthesis.cancel(); }catch(e){} });
+  ov.addEventListener('click', function(e){ if(e.target === ov){ ov.classList.remove('show'); try{ speechSynthesis.cancel(); }catch(e){} } });
+
+  spkB.addEventListener('click', function(){
+    var on = localStorage.getItem('maruSpeak') === '1';
+    localStorage.setItem('maruSpeak', on ? '0' : '1');
+    spkB.classList.toggle('on', !on);
+    if(on){ try{ speechSynthesis.cancel(); }catch(e){} }
+    else toast('มารุจะอ่านคำตอบออกเสียง 🔊');
+  });
+
+  inp.addEventListener('input', function(){ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); maruSend(); } });
+  sendB.addEventListener('click', maruSend);
+
+  // ไมโครโฟน (ถ้าอุปกรณ์รองรับ)
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ micB.style.display='none'; }
+  else {
+    micB.addEventListener('click', function(){
+      if(micB.classList.contains('rec')){ try{ maruRec && maruRec.stop(); }catch(e){} return; }
+      try{
+        maruRec = new SR();
+        maruRec.lang='th-TH'; maruRec.interimResults=false; maruRec.maxAlternatives=1;
+        maruRec.onstart=function(){ micB.classList.add('rec'); };
+        maruRec.onend=function(){ micB.classList.remove('rec'); };
+        maruRec.onerror=function(){ micB.classList.remove('rec'); };
+        maruRec.onresult=function(ev){
+          var t = ev.results[0][0].transcript;
+          inp.value = t;
+          maruSend();
+        };
+        maruRec.start();
+      }catch(e){ toast('ใช้ไมค์ไม่ได้บนเครื่องนี้'); }
+    });
+  }
+
+  function maruAdd(text, cls){
+    var hi = msgs.querySelector('.maru-hi'); if(hi) hi.remove();
+    var d = document.createElement('div'); d.className='maru-b '+cls; d.textContent=text;
+    msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d;
+  }
+  function maruDots(){ var d=document.createElement('div'); d.className='maru-dots'; d.id='maruDots'; d.innerHTML='<span></span><span></span><span></span>'; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; }
+  function maruNoDots(){ var d=document.getElementById('maruDots'); if(d) d.remove(); }
+
+  window.maruSend = async function(){
+    var text = inp.value.trim();
+    if(!text || maruBusy) return;
+    maruBusy=true; sendB.disabled=true;
+    maruAdd(text,'me'); inp.value=''; inp.style.height='auto';
+    maruDots();
+    try{
+      var r = await api('askAI', { message:text, history:maruHistory });
+      maruNoDots();
+      if(r.ok){
+        maruAdd(r.reply,'ai');
+        maruHistory.push({role:'user',text:text});
+        maruHistory.push({role:'model',text:r.reply});
+        if(maruHistory.length>24) maruHistory = maruHistory.slice(-24);
+        maruSpeak(r.reply);
+      } else {
+        maruAdd(r.error || 'ขอโทษครับ ตอบไม่ได้ตอนนี้','er');
+      }
+    }catch(err){
+      maruNoDots(); maruAdd('เชื่อมต่อไม่ได้ ลองใหม่นะครับ','er');
+    }
+    maruBusy=false; sendB.disabled=false;
+  };
 }
