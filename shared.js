@@ -470,7 +470,7 @@ function maruEnsureLogo(cb){
   var lg = new Image();
   lg.onload = function(){ maruLogoImg = lg; cb(lg); };
   lg.onerror = function(){ cb(null); };
-  lg.src = 'maru-logo.png';   // โลโก้แบรนด์สำหรับโปสเตอร์ (คนละไฟล์กับปุ่มลอย maru-chick.png)
+  lg.src = 'apple-touch-icon.png';   // โลโก้แบรนด์สำหรับโปสเตอร์ (คนละไฟล์กับปุ่มลอย maru-chick.png)
 }
 function maruRoundRect(ctx, x, y, w, h, r){
   ctx.beginPath();
@@ -506,7 +506,7 @@ function maruDrawPoster(imgEl, logoEl, W, H, poster){
   var menu = String(poster.menu || '').trim();
   var price = String(poster.price || '').trim();
   var note = String(poster.note || '').trim();
-  // แบรนด์มุมบนซ้าย — ใช้โลโก้แบรนด์ (maru-logo.png) เป็นสี่เหลี่ยมมุมมน
+  // แบรนด์มุมบนซ้าย — ใช้โลโก้แบรนด์ (apple-touch-icon.png) เป็นสี่เหลี่ยมมุมมน
   if(logoEl){
     try{
       var lw = Math.round(W * 0.20);
