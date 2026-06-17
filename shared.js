@@ -470,7 +470,7 @@ function maruEnsureLogo(cb){
   var lg = new Image();
   lg.onload = function(){ maruLogoImg = lg; cb(lg); };
   lg.onerror = function(){ cb(null); };
-  lg.src = 'icon-512.png';   // โลโก้แบรนด์สำหรับโปสเตอร์ (คนละไฟล์กับปุ่มลอย maru-chick.png)
+  lg.src = 'apple-touch-icon.png';   // โลโก้แบรนด์สำหรับโปสเตอร์ (คนละไฟล์กับปุ่มลอย maru-chick.png)
 }
 function maruRoundRect(ctx, x, y, w, h, r){
   ctx.beginPath();
@@ -689,6 +689,10 @@ function bindMaruAssistant(currentPage){
     if(/ติ๊?กต็?อก|ติ้กต็อก|tiktok/i.test(text)) c.push('tiktok');
     return c;
   }
+  // เฟส 3: ผู้ใช้ขอให้ AI วาด/แต่งภาพไหม
+  function maruWantsAiImage(text){
+    return /วาดรูป|วาดภาพ|สร้างภาพ|แต่งรูป|แต่งภาพ|ทำภาพใหม่|ภาพใหม่|ภาพ ?ai|ai ?image|เจน(เนอ)?เรท|ออกแบบภาพ|ครีเอทภาพ|แต่งฉาก/i.test(text);
+  }
   var MARU_CHAN_LABEL = { facebook:'Facebook', line:'LINE', instagram:'Instagram', tiktok:'TikTok' };
   function maruAddCaption(label, text){
     var hi = msgs.querySelector('.maru-hi'); if(hi) hi.remove();
@@ -719,14 +723,15 @@ function bindMaruAssistant(currentPage){
     wrap.appendChild(im); wrap.appendChild(pl); wrap.appendChild(a);
     msgs.appendChild(wrap); msgs.scrollTop = msgs.scrollHeight;
   }
-  function maruMakePosters(imgEl, poster, chans){
+  function maruMakePosters(imgEl, poster, chans, isAi){
+    var tag = isAi ? ' · ภาพประกอบ AI' : '';
     var needSquare = chans.length === 0 || chans.indexOf('facebook') >= 0 || chans.indexOf('line') >= 0 || chans.indexOf('instagram') >= 0;
     var needVert = chans.indexOf('tiktok') >= 0;
     if(!needSquare && !needVert) needSquare = true;
     maruEnsureLogo(function(logo){
       function build(){
-        if(needSquare){ try{ maruAddPoster('จัตุรัส 1:1 (Facebook / Instagram / LINE)', maruDrawPoster(imgEl, logo, 1080, 1080, poster)); }catch(e){} }
-        if(needVert){ try{ maruAddPoster('แนวตั้ง 9:16 (TikTok / Story)', maruDrawPoster(imgEl, logo, 1080, 1920, poster)); }catch(e){} }
+        if(needSquare){ try{ maruAddPoster('จัตุรัส 1:1 (Facebook / Instagram / LINE)' + tag, maruDrawPoster(imgEl, logo, 1080, 1080, poster)); }catch(e){} }
+        if(needVert){ try{ maruAddPoster('แนวตั้ง 9:16 (TikTok / Story)' + tag, maruDrawPoster(imgEl, logo, 1080, 1920, poster)); }catch(e){} }
       }
       if(document.fonts && document.fonts.ready){ document.fonts.ready.then(build).catch(build); }
       else build();
@@ -735,29 +740,49 @@ function bindMaruAssistant(currentPage){
   async function maruPromo(text){
     var chans = maruChannelsFrom(text);
     var img = maruPromoImg;   // เก็บไว้ก่อนเคลียร์
+    var wantAi = maruWantsAiImage(text);
     try{
       var r = await api('genPromoCaption', { brief:text, channels:chans });
       maruNoDots();
-      if(r.ok && r.captions){
-        maruAdd('นี่คือโพสต์ที่ร่างให้ครับ 🐤 คัดลอกแคปชั่น/ดาวน์โหลดรูปไปโพสต์ได้เลย','ai');
-        var caps = r.captions;
-        var order = (r.channels && r.channels.length) ? r.channels : Object.keys(caps);
-        var shown = 0;
-        order.forEach(function(ch){
-          if(ch === 'poster' || ch === 'raw') return;
-          if(caps[ch]){ maruAddCaption(MARU_CHAN_LABEL[ch] || ch, String(caps[ch])); shown++; }
-        });
-        if(!shown && caps.raw) maruAdd(String(caps.raw),'ai');
-        // สร้างรูปโปสเตอร์ถ้ามีรูปแนบ
-        if(img && img.imgEl){
-          var poster = caps.poster || {};
-          if(!poster.headline && !poster.menu && !poster.price){
-            poster = { menu: text.length > 28 ? text.slice(0, 28) + '…' : text };
-          }
-          maruMakePosters(img.imgEl, poster, chans);
+      if(!(r.ok && r.captions)){ maruAdd(r.error || 'สร้างไม่สำเร็จ ลองใหม่นะครับ','er'); clearAtt(); return; }
+      maruAdd('นี่คือโพสต์ที่ร่างให้ครับ 🐤 คัดลอกแคปชั่น/ดาวน์โหลดรูปไปโพสต์ได้เลย','ai');
+      var caps = r.captions;
+      var order = (r.channels && r.channels.length) ? r.channels : Object.keys(caps);
+      var shown = 0;
+      order.forEach(function(ch){
+        if(ch === 'poster' || ch === 'raw') return;
+        if(caps[ch]){ maruAddCaption(MARU_CHAN_LABEL[ch] || ch, String(caps[ch])); shown++; }
+      });
+      if(!shown && caps.raw) maruAdd(String(caps.raw),'ai');
+      // เตรียมข้อความบนโปสเตอร์
+      var poster = caps.poster || {};
+      if(!poster.headline && !poster.menu && !poster.price){
+        poster = { menu: text.length > 28 ? text.slice(0, 28) + '…' : text };
+      }
+      if(wantAi){
+        // เฟส 3: ให้ AI วาด/แต่งภาพ แล้วเอา Canvas ใส่ข้อความ/ราคา/โลโก้ทับ
+        maruAdd('🎨 กำลังวาดภาพด้วย AI สักครู่นะครับ (ใช้เวลานิดนึง)...','ai');
+        maruDots();
+        var payload = { prompt: text };
+        if(img && img.dataURL){
+          payload.imageBase64 = img.dataURL.split(',')[1] || '';
+          payload.mime = (img.dataURL.match(/^data:(.*?);/) || [])[1] || 'image/jpeg';
         }
-      } else {
-        maruAdd(r.error || 'สร้างไม่สำเร็จ ลองใหม่นะครับ','er');
+        var ir;
+        try{ ir = await api('genPromoImage', payload); }catch(e){ ir = { ok:false, error:'เชื่อมต่อ AI ไม่ได้' }; }
+        maruNoDots();
+        if(ir && ir.ok && ir.image){
+          var aiImg = new Image();
+          aiImg.onload = function(){ maruMakePosters(aiImg, poster, chans, true); };
+          aiImg.onerror = function(){ maruAdd('โหลดภาพ AI ไม่ได้ ลองใหม่นะครับ','er'); if(img && img.imgEl) maruMakePosters(img.imgEl, poster, chans, false); };
+          aiImg.src = ir.image;
+        } else {
+          maruAdd((ir && ir.error) || 'สร้างภาพ AI ไม่สำเร็จ','er');
+          if(img && img.imgEl) maruMakePosters(img.imgEl, poster, chans, false);   // สำรอง: ใช้รูปจริง
+        }
+      } else if(img && img.imgEl){
+        // เฟส 2: รูปจริง + ใส่ข้อความด้วย Canvas
+        maruMakePosters(img.imgEl, poster, chans, false);
       }
     }catch(e){
       maruNoDots(); maruAdd('เชื่อมต่อไม่ได้ ลองใหม่นะครับ','er');
@@ -771,7 +796,7 @@ function bindMaruAssistant(currentPage){
     maruBusy=true; sendB.disabled=true;
     if(typeof forceText !== 'string'){ maruAdd(text,'me'); inp.value=''; inp.style.height='auto'; }
     maruDots();
-    if(maruIsPromo(text) || maruPromoImg){ await maruPromo(text); maruBusy=false; sendB.disabled=false; return; }
+    if(maruIsPromo(text) || maruPromoImg || maruWantsAiImage(text)){ await maruPromo(text); maruBusy=false; sendB.disabled=false; return; }
     try{
       var owner = '';
       try{ owner = sessionStorage.getItem('maruOwner') || ''; }catch(e){}
