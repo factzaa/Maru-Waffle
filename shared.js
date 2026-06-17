@@ -470,7 +470,7 @@ function maruEnsureLogo(cb){
   var lg = new Image();
   lg.onload = function(){ maruLogoImg = lg; cb(lg); };
   lg.onerror = function(){ cb(null); };
-  lg.src = 'maru-chick.png';
+  lg.src = 'maru-logo.png';   // โลโก้แบรนด์สำหรับโปสเตอร์ (คนละไฟล์กับปุ่มลอย maru-chick.png)
 }
 function maruRoundRect(ctx, x, y, w, h, r){
   ctx.beginPath();
@@ -506,16 +506,30 @@ function maruDrawPoster(imgEl, logoEl, W, H, poster){
   var menu = String(poster.menu || '').trim();
   var price = String(poster.price || '').trim();
   var note = String(poster.note || '').trim();
-  // แบรนด์มุมบนซ้าย (โลโก้ + ชื่อร้าน)
-  var logoSz = Math.round(W * 0.11);
+  // แบรนด์มุมบนซ้าย — ใช้โลโก้แบรนด์ (maru-logo.png) เป็นสี่เหลี่ยมมุมมน
   if(logoEl){
-    try{ ctx.save(); ctx.beginPath(); ctx.arc(pad + logoSz / 2, pad + logoSz / 2, logoSz / 2, 0, Math.PI * 2); ctx.closePath(); ctx.clip(); ctx.drawImage(logoEl, pad, pad, logoSz, logoSz); ctx.restore(); }catch(e){}
+    try{
+      var lw = Math.round(W * 0.20);
+      var lh = Math.round(lw * (logoEl.height / logoEl.width || 1));
+      var rr = Math.round(lw * 0.14);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 3;
+      ctx.fillStyle = '#FFC629';
+      maruRoundRect(ctx, pad, pad, lw, lh, rr); ctx.fill();
+      ctx.restore();
+      ctx.save();
+      maruRoundRect(ctx, pad, pad, lw, lh, rr); ctx.clip();
+      ctx.drawImage(logoEl, pad, pad, lw, lh);
+      ctx.restore();
+    }catch(e){}
+  } else {
+    // สำรอง: ถ้าโหลดโลโก้ไม่ได้ เขียนชื่อร้านแทน
+    ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.font = '800 ' + Math.round(W * 0.05) + 'px ' + KANIT;
+    ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 8;
+    ctx.fillText('Maru Waffle', pad, pad + Math.round(W * 0.05));
+    ctx.shadowBlur = 0;
   }
-  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  ctx.font = '700 ' + Math.round(W * 0.045) + 'px ' + KANIT;
-  ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 8;
-  ctx.fillText('Maru Waffle', pad + (logoEl ? logoSz + 14 : 0), pad + logoSz / 2);
-  ctx.shadowBlur = 0;
   // ป้ายราคามุมบนขวา (สีแดงเด่น)
   if(price){
     ctx.font = '800 ' + Math.round(W * 0.058) + 'px ' + KANIT;
