@@ -777,11 +777,8 @@ function bindMaruAssistant(currentPage){
         if(caps[ch]){ maruAddCaption(MARU_CHAN_LABEL[ch] || ch, String(caps[ch])); shown++; }
       });
       if(!shown && caps.raw) maruAdd(String(caps.raw),'ai');
-      // เตรียมข้อความบนโปสเตอร์
+      // เตรียมข้อความบนโปสเตอร์ — ถ้า AI ไม่ส่งข้อมูลโปร/ราคามา = ไม่แปะข้อความ ปล่อยภาพสะอาด (มีแค่โลโก้)
       var poster = caps.poster || {};
-      if(!poster.headline && !poster.menu && !poster.price){
-        poster = { menu: text.length > 28 ? text.slice(0, 28) + '…' : text };
-      }
       if(wantAi){
         // เฟส 3: ให้ AI วาด/แต่งภาพ แล้วเอา Canvas ใส่ข้อความ/ราคา/โลโก้ทับ
         maruAdd('🎨 กำลังวาดภาพด้วย AI สักครู่นะครับ (ใช้เวลานิดนึง)...','ai');
