@@ -11,6 +11,37 @@ function baht(n){return '฿'+Math.round(Number(n)||0).toLocaleString('en-US');}
 function num(v){const n=parseFloat(v); return isNaN(n)?0:n;}
 function escHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
+// ย่อ/บีบรูปก่อนอัปโหลด (กันไฟล์ใหญ่อัป ImgBB ล้ม) → คืน Promise {base64, mime, name, dataUrl}
+// ใช้กับใบเสร็จ/บิล: maruCompressImage(file).then(function(r){ ... })
+function maruCompressImage(file, maxDim, quality){
+  maxDim = maxDim || 1280; quality = quality || 0.8;
+  return new Promise(function(resolve){
+    if(!file){ resolve(null); return; }
+    var reader = new FileReader();
+    reader.onload = function(){
+      var raw = reader.result;
+      function rawResult(){ return { base64: String(raw).split(',')[1] || '', mime: file.type || 'image/jpeg', name: file.name || 'receipt', dataUrl: raw }; }
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var w = img.width, h = img.height;
+          if(Math.max(w, h) > maxDim){ var sc = maxDim / Math.max(w, h); w = Math.round(w * sc); h = Math.round(h * sc); }
+          var c = document.createElement('canvas'); c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          var dataUrl = c.toDataURL('image/jpeg', quality);
+          var base64 = dataUrl.split(',')[1] || '';
+          if(!base64 || base64.length >= String(raw).length){ resolve(rawResult()); return; }  // รูปเล็กอยู่แล้ว ใช้ของเดิม
+          resolve({ base64: base64, mime: 'image/jpeg', name: (file.name || 'receipt').replace(/\.[^.]+$/, '') + '.jpg', dataUrl: dataUrl });
+        }catch(e){ resolve(rawResult()); }
+      };
+      img.onerror = function(){ resolve(rawResult()); };
+      img.src = raw;
+    };
+    reader.onerror = function(){ resolve(null); };
+    reader.readAsDataURL(file);
+  });
+}
+
 function toast(msg){
   const t=document.getElementById('toast'); if(!t) return;
   t.textContent=msg; t.classList.add('show');
